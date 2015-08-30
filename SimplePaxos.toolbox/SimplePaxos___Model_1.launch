@@ -18,7 +18,7 @@
 <stringAttribute key="modelBehaviorNext" value="Next"/>
 <stringAttribute key="modelBehaviorSpec" value=""/>
 <intAttribute key="modelBehaviorSpecType" value="2"/>
-<stringAttribute key="modelBehaviorVars" value="lastPromise, network, proposalNumber, proposedCommand, accepted, chosen"/>
+<stringAttribute key="modelBehaviorVars" value="lastPromise, network, proposalNumber, proposed, accepted, chosen"/>
 <booleanAttribute key="modelCorrectnessCheckDeadlock" value="false"/>
 <listAttribute key="modelCorrectnessInvariants">
 <listEntry value="0Cardinality(chosen) &lt;= 1"/>
@@ -37,7 +37,7 @@
 <listEntry value="Nat;;0..3;0;0"/>
 </listAttribute>
 <stringAttribute key="modelParameterModelValues" value="{}"/>
-<stringAttribute key="modelParameterNewDefinitions" value="Init1 ==&#10;/\  accepted = ( p1 :&gt; [number |-&gt; 3, command |-&gt; c1] @@&#10;  p2 :&gt; [number |-&gt; 3, command |-&gt; c1] @@&#10;  p3 :&gt; &lt;&lt;&gt;&gt; )&#10;/\  chosen = {c1}&#10;/\  lastPromise = (p1 :&gt; 2 @@ p2 :&gt; 3 @@ p3 :&gt; 3)&#10;/\  network = { [number |-&gt; 1, type |-&gt; &quot;prepare&quot;],&#10;  [number |-&gt; 2, type |-&gt; &quot;prepare&quot;],&#10;  [number |-&gt; 3, type |-&gt; &quot;prepare&quot;],&#10;  [type |-&gt; &quot;propose&quot;, proposal |-&gt; [number |-&gt; 2, command |-&gt; c2]],&#10;  [type |-&gt; &quot;propose&quot;, proposal |-&gt; [number |-&gt; 3, command |-&gt; c1]],&#10;  [number |-&gt; 2, type |-&gt; &quot;prepare-response&quot;, proposal |-&gt; &lt;&lt;&gt;&gt;, from |-&gt; p1],&#10;  [number |-&gt; 2, type |-&gt; &quot;prepare-response&quot;, proposal |-&gt; &lt;&lt;&gt;&gt;, from |-&gt; p2],&#10;  [number |-&gt; 3, type |-&gt; &quot;prepare-response&quot;, proposal |-&gt; &lt;&lt;&gt;&gt;, from |-&gt; p2],&#10;  [number |-&gt; 3, type |-&gt; &quot;prepare-response&quot;, proposal |-&gt; &lt;&lt;&gt;&gt;, from |-&gt; p3] }&#10;/\  proposalNumber = (p1 :&gt; 1 @@ p2 :&gt; 2 @@ p3 :&gt; 3)&#10;/\  proposedCommand = (p1 :&gt; &quot;none&quot; @@ p2 :&gt; c2 @@ p3 :&gt; c1)"/>
+<stringAttribute key="modelParameterNewDefinitions" value=""/>
 <intAttribute key="numberOfWorkers" value="8"/>
 <booleanAttribute key="recover" value="false"/>
 <stringAttribute key="result.mail.address" value=""/>
