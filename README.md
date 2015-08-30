@@ -1,7 +1,7 @@
 # PaxosMadeSimple
 A TLA+ formalization of the algorithm described in "Paxos Made Simple"
 
-Can be model-checked with 3 processes, 2 commands, and 1..3 substituted for Nat by just importing the model "Model_1" in the TLA toolbox.
+Can be model-checked by opening the spec in the TLA toolbox and instructing the toolbox to importing the model named "Model_1".
 
 Some people noted that there is a problem in the algorithm as described in the paper:
 http://stackoverflow.com/questions/29880949/contradiction-in-lamports-paxos-made-simple-paper
