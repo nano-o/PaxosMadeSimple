@@ -11,23 +11,20 @@
 <stringAttribute key="distributedTLCVMArgs" value=""/>
 <intAttribute key="fpBits" value="0"/>
 <intAttribute key="fpIndex" value="1"/>
-<intAttribute key="maxHeapSize" value="78"/>
+<intAttribute key="maxHeapSize" value="77"/>
 <intAttribute key="maxSetSize" value="1000000"/>
 <booleanAttribute key="mcMode" value="true"/>
 <stringAttribute key="modelBehaviorInit" value="Init"/>
 <stringAttribute key="modelBehaviorNext" value="Next"/>
 <stringAttribute key="modelBehaviorSpec" value=""/>
 <intAttribute key="modelBehaviorSpecType" value="2"/>
-<stringAttribute key="modelBehaviorVars" value="lastPromise, network, proposalNumber, proposed, accepted, chosen"/>
+<stringAttribute key="modelBehaviorVars" value="lastPromise, numbersUsed, network, proposalNumber, proposed, accepted"/>
 <booleanAttribute key="modelCorrectnessCheckDeadlock" value="false"/>
 <listAttribute key="modelCorrectnessInvariants">
-<listEntry value="0Cardinality(chosen) &lt;= 1"/>
-<listEntry value="1TypeInvariant"/>
-<listEntry value="1Cardinality(chosen) &lt;=1"/>
+<listEntry value="0TypeInvariant"/>
 </listAttribute>
 <listAttribute key="modelCorrectnessProperties">
-<listEntry value="0[](IsChosen(c1, accepted) =&gt; [](\neg IsChosen(c2, accepted)))"/>
-<listEntry value="0Agreement"/>
+<listEntry value="1Agreement"/>
 </listAttribute>
 <stringAttribute key="modelExpressionEval" value=""/>
 <stringAttribute key="modelParameterActionConstraint" value=""/>

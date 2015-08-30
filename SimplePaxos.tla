@@ -19,17 +19,20 @@ CONSTANTS
     P, \* The set of processes. 
     C \* The set of commands.
 
+(***************************************************************************)
+(* The variables of the spec.  See TypeInvariant for the expected values   *)
+(* of those variables and comments.                                        *)
+(***************************************************************************)
 VARIABLES
     proposalNumber,
     numbersUsed,
     proposed,
     accepted,
     lastPromise,
-    network,
-    chosen
+    network
 
 vars == <<proposalNumber, proposed, accepted, 
-    lastPromise, network, chosen>>
+    lastPromise, network>>
     
 (***************************************************************************)
 (* We assume that proposal numbers start at 1 and we will use 0 to         *)
@@ -41,6 +44,13 @@ Proposal == [command : C, number: ProposalNum]
 
 Msg(type, Payload) == [type : {type}, payload : Payload]
 
+(***************************************************************************)
+(* Msgs is the set of messages that process can send.  We do not model     *)
+(* explicitely the source and destination of messages and assume that      *)
+(* every process sees the entire state of the network.  For example, a     *)
+(* process will know that a prepare-reponse message is a response to its   *)
+(* prepare message by looking at the propoal number in the messages.       *)
+(***************************************************************************)
 Msgs == 
     [   type : {"prepare"}, 
         number : ProposalNum ] 
@@ -55,13 +65,12 @@ Msgs ==
 
 TypeInvariant ==
     \A p \in P :
-        /\  proposalNumber[p] \in ProposalNum \cup {0}
+        /\  proposalNumber[p] \in ProposalNum \cup {0} \* The current proposal number of process p.
         /\  proposed[p] \in BOOLEAN \* Did p make a proposal for its current proposal number?
-        /\  numbersUsed[p] \in SUBSET ProposalNum
-        /\  accepted[p] \in Proposal  \cup {<<>>}
-        /\  lastPromise[p] \in ProposalNum \cup {0}
-        /\  network \in SUBSET Msgs
-        /\  chosen \in SUBSET C \* A ghost variable used for debugging.
+        /\  numbersUsed[p] \in SUBSET ProposalNum \* All the proposal numbers ever used by p up to this point.
+        /\  accepted[p] \in Proposal  \cup {<<>>} \* The last proposal that p has accepted.
+        /\  lastPromise[p] \in ProposalNum \cup {0} \* The last promise made by p.
+        /\  network \in SUBSET Msgs \* A set of messages.
 
 Init == 
     /\  proposalNumber = [p \in P |-> 0]
@@ -70,7 +79,6 @@ Init ==
     /\  accepted = [p \in P |-> <<>>]
     /\  lastPromise = [p \in P |-> 0]
     /\  network = {}
-    /\  chosen = {}
     
 (***************************************************************************)
 (* The proposer p starts the prepare phase by chosing a new proposal       *)
@@ -78,7 +86,7 @@ Init ==
 (* lower number and to report the highest proposal that they have          *)
 (* accepted.                                                               *)
 (*                                                                         *)
-(* We assume that two different proposers never use the same proposal      *)
+(* We require that two different proposers never use the same proposal     *)
 (* numbers.                                                                *)
 (*                                                                         *)
 (* Note that a proposer can start a new prepare phase with a greater       *)
@@ -91,7 +99,7 @@ Prepare(p) == \E n \in ProposalNum :
     /\  proposed' = [proposed EXCEPT ![p] = FALSE]
     /\  network' = network \cup {[type |-> "prepare", number |-> n]}
     /\  numbersUsed' = [numbersUsed EXCEPT ![p] = @ \cup {n}]
-    /\  UNCHANGED <<accepted, lastPromise, chosen>>
+    /\  UNCHANGED <<accepted, lastPromise>>
 
 PrepareReponse(p) == 
     /\  \E m \in network :
@@ -103,7 +111,7 @@ PrepareReponse(p) ==
                     from |-> p, 
                     proposal |-> accepted[p], 
                     number |-> m.number ]}
-    /\  UNCHANGED <<proposalNumber, accepted, proposed, chosen, numbersUsed>>
+    /\  UNCHANGED <<proposalNumber, accepted, proposed, numbersUsed>>
 
 MajoritySets == {Q \in SUBSET P : Cardinality(Q) > Cardinality(P) \div 2}
 
@@ -122,6 +130,10 @@ SendProposal(p, c) ==
             command |-> c,
             number |-> proposalNumber[p] ]]}
 
+(***************************************************************************)
+(* The set of proposals found in the prepare-response messages sent by the *)
+(* members of Q in response to the last prepare message of process p.      *)
+(***************************************************************************)
 ProposalsInPrepareResponses(p, Q) ==
     {m.proposal : m \in {m \in network :
         /\  IsPrepareResponse(p,m)
@@ -142,17 +154,11 @@ Propose(p) ==
                                         [proposed EXCEPT ![p] = TRUE]
                     ELSE
                         \E c \in C : 
-                            \* Anothe way to fix the "bug" reported on stackoverflow:
-                            \* Send the proposal only to Q
+                            \* Anothe way to fix the "bug" reported on stackoverflow would be to send the proposal only to the members of Q.
                             /\  SendProposal(p, c)
                             /\  proposed' = 
                                         [proposed EXCEPT ![p] = TRUE]
-    /\  UNCHANGED <<proposalNumber, accepted, lastPromise, chosen, numbersUsed>> 
-        
-IsChosen(c, acc) ==
-    \E Q \in MajoritySets : \A q \in Q :
-        /\  acc[q] # <<>>
-        /\  acc[q].command = c
+    /\  UNCHANGED <<proposalNumber, accepted, lastPromise, numbersUsed>> 
                 
 Accept(p) ==
     /\  \E m \in network :
@@ -161,9 +167,6 @@ Accept(p) ==
             \* One way to fix the "bug" reported on stackoverflow:
             /\  lastPromise' = [lastPromise EXCEPT ![p] = m.proposal.number]
             /\  accepted' = [accepted EXCEPT ![p] = m.proposal]
-            /\  IF  IsChosen(m.proposal.command, accepted')
-                THEN chosen' = chosen \cup {m.proposal.command}
-                ELSE UNCHANGED chosen
     /\  UNCHANGED  <<network, proposalNumber, proposed, numbersUsed>>
 
 Next == \E p \in P :
@@ -171,6 +174,12 @@ Next == \E p \in P :
     \/  PrepareReponse(p)
     \/  Propose(p)
     \/  Accept(p)
+
+        
+IsChosen(c, acc) ==
+    \E Q \in MajoritySets : \A q \in Q :
+        /\  acc[q] # <<>>
+        /\  acc[q].command = c
 
 (***************************************************************************)
 (* Agreement says that if a command is chosen, then no different command   *)
@@ -193,14 +202,7 @@ Agreement ==
     \A c \in C : [](IsChosen(c, accepted) => 
         (\A d \in C : d # c => [](\neg IsChosen(d, accepted))))
 
-                        
-                            
-
-
-    
-    
-
 =============================================================================
 \* Modification History
-\* Last modified Sun Aug 30 14:01:53 EDT 2015 by nano
+\* Last modified Sun Aug 30 14:36:50 EDT 2015 by nano
 \* Created Sat Aug 29 17:37:33 EDT 2015 by nano
