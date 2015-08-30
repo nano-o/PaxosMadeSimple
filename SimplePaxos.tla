@@ -131,7 +131,7 @@ Accept(p) ==
             /\  IF  IsChosen(m.proposal.command, accepted')
                 THEN chosen' = chosen \cup {m.proposal.command}
                 ELSE UNCHANGED chosen
-    /\  UNCHANGED  <<network, proposalNumber, proposed, lastPromise>>
+    /\  UNCHANGED  <<network, proposalNumber, proposed>>
 
 Next == \E p \in P :
     \/  Prepare(p)
@@ -169,5 +169,5 @@ Agreement ==
 
 =============================================================================
 \* Modification History
-\* Last modified Sun Aug 30 13:30:08 EDT 2015 by nano
+\* Last modified Sun Aug 30 13:32:06 EDT 2015 by nano
 \* Created Sat Aug 29 17:37:33 EDT 2015 by nano
