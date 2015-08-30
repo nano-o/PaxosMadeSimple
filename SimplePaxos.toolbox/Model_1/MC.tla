@@ -12,31 +12,35 @@ p1, p2, p3
 ----
 
 \* MV CONSTANT definitions C
-const_1440955931104344000 == 
+const_1440957715330396000 == 
 {c1, c2}
 ----
 
 \* MV CONSTANT definitions P
-const_1440955931114345000 == 
+const_1440957715340397000 == 
 {p1, p2, p3}
 ----
 
 \* CONSTANT definition @modelParameterDefinitions:0
-def_ov_1440955931124346000 ==
+def_ov_1440957715350398000 ==
 0..3
 ----
 \* INIT definition @modelBehaviorInit:0
-init_1440955931134347000 ==
+init_1440957715360399000 ==
 Init
 ----
 \* NEXT definition @modelBehaviorNext:0
-next_1440955931144348000 ==
+next_1440957715370400000 ==
 Next
 ----
-\* PROPERTY definition @modelCorrectnessProperties:0
-prop_1440955931154349000 ==
-[](IsChosen(c1, accepted) => [](\neg IsChosen(c2, accepted)))
+\* INVARIANT definition @modelCorrectnessInvariants:0
+inv_1440957715381401000 ==
+TypeInvariant
+----
+\* INVARIANT definition @modelCorrectnessInvariants:1
+inv_1440957715391402000 ==
+Cardinality(chosen) <=1
 ----
 =============================================================================
 \* Modification History
-\* Created Sun Aug 30 13:32:11 EDT 2015 by nano
+\* Created Sun Aug 30 14:01:55 EDT 2015 by nano

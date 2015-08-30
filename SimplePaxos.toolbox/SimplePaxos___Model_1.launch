@@ -22,9 +22,12 @@
 <booleanAttribute key="modelCorrectnessCheckDeadlock" value="false"/>
 <listAttribute key="modelCorrectnessInvariants">
 <listEntry value="0Cardinality(chosen) &lt;= 1"/>
+<listEntry value="1TypeInvariant"/>
+<listEntry value="1Cardinality(chosen) &lt;=1"/>
 </listAttribute>
 <listAttribute key="modelCorrectnessProperties">
-<listEntry value="1[](IsChosen(c1, accepted) =&gt; [](\neg IsChosen(c2, accepted)))"/>
+<listEntry value="0[](IsChosen(c1, accepted) =&gt; [](\neg IsChosen(c2, accepted)))"/>
+<listEntry value="0Agreement"/>
 </listAttribute>
 <stringAttribute key="modelExpressionEval" value=""/>
 <stringAttribute key="modelParameterActionConstraint" value=""/>
