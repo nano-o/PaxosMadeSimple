@@ -21,10 +21,10 @@
 <stringAttribute key="modelBehaviorVars" value="lastPromise, numbersUsed, network, proposalNumber, proposed, accepted"/>
 <booleanAttribute key="modelCorrectnessCheckDeadlock" value="false"/>
 <listAttribute key="modelCorrectnessInvariants">
-<listEntry value="0TypeInvariant"/>
+<listEntry value="1TypeInvariant"/>
 </listAttribute>
 <listAttribute key="modelCorrectnessProperties">
-<listEntry value="1Agreement"/>
+<listEntry value="0Agreement"/>
 </listAttribute>
 <stringAttribute key="modelExpressionEval" value=""/>
 <stringAttribute key="modelParameterActionConstraint" value=""/>

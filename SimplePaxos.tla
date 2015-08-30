@@ -56,7 +56,7 @@ Msgs ==
         number : ProposalNum ] 
     \cup
     [   type : {"prepare-response"}, 
-        proposal: Proposal \cup {<<>>}, 
+        highestAccepted: Proposal \cup {<<>>}, \* we use <<>> to indicate that no proposal was ever accepted. 
         number: ProposalNum, 
         from: P ] 
     \cup
@@ -109,7 +109,7 @@ PrepareReponse(p) ==
             /\  network' = network \cup {[
                     type |-> "prepare-response",
                     from |-> p, 
-                    proposal |-> accepted[p], 
+                    highestAccepted |-> accepted[p], 
                     number |-> m.number ]}
     /\  UNCHANGED <<proposalNumber, accepted, proposed, numbersUsed>>
 
@@ -131,35 +131,44 @@ SendProposal(p, c) ==
             number |-> proposalNumber[p] ]]}
 
 (***************************************************************************)
-(* The set of proposals found in the prepare-response messages sent by the *)
-(* members of Q in response to the last prepare message of process p.      *)
+(* The set of highest accepted proposals found in the prepare-response     *)
+(* messages sent by the members of Q in response to the last prepare       *)
+(* message of process p.                                                   *)
 (***************************************************************************)
-ProposalsInPrepareResponses(p, Q) ==
-    {m.proposal : m \in {m \in network :
+HighestAccepted(p, Q) ==
+    {m.highestAccepted : m \in {m \in network :
         /\  IsPrepareResponse(p,m)
         /\  m.from \in Q
-        /\  m.proposal # <<>>}}
+        /\  m.highestAccepted # <<>>}}
 
+(***************************************************************************)
+(* A proposer can propose a command if it has not already done so for its  *)
+(* current proposal number and if it has received reponses to its prepare  *)
+(* message from a majority of acceptors.                                   *)
+(***************************************************************************) 
+\* Anothe way to fix the "bug" reported on stackoverflow would be to send the proposal only to the members of Q.
 Propose(p) == 
     /\  proposed[p] = FALSE \* Don't let p propose different values with the same proposal number.
     /\  \E Q \in MajoritySets :   
             /\  \A q \in Q : \E m \in network :
                     /\  IsPrepareResponse(p,m)
                     /\  m.from = q
-            /\  LET proposals == ProposalsInPrepareResponses(p, Q)
+            /\  LET proposals == HighestAccepted(p, Q)
                 IN  IF  proposals # {}
                     THEN    LET c == HighestProposal(proposals).command
                             IN  /\  SendProposal(p, c)
                                 /\  proposed' = 
                                         [proposed EXCEPT ![p] = TRUE]
                     ELSE
-                        \E c \in C : 
-                            \* Anothe way to fix the "bug" reported on stackoverflow would be to send the proposal only to the members of Q.
+                        \E c \in C :
                             /\  SendProposal(p, c)
                             /\  proposed' = 
                                         [proposed EXCEPT ![p] = TRUE]
     /\  UNCHANGED <<proposalNumber, accepted, lastPromise, numbersUsed>> 
-                
+             
+(***************************************************************************)
+(* An acceptor accepts a proposal.                                         *)
+(***************************************************************************)   
 Accept(p) ==
     /\  \E m \in network :
             /\  m.type = "propose"
@@ -185,7 +194,7 @@ IsChosen(c, acc) ==
 (* Agreement says that if a command is chosen, then no different command   *)
 (* can be chosen at a later time.                                          *)
 (*                                                                         *)
-(* On might be tempted to add the fact that IsChosen(c, accepted) must be  *)
+(* One might be tempted to add the fact that IsChosen(c, accepted) must be *)
 (* stable, like this:                                                      *)
 (*                                                                         *)
 (* Agreement ==                                                            *)
@@ -193,10 +202,11 @@ IsChosen(c, acc) ==
 (*         /\  (\A d \in C : d # c => [](\neg IsChosen(d, accepted))))     *)
 (*         /\  [](IsChosen(c, accepted)                                    *)
 (*                                                                         *)
-(* However the algorithm violates this property.  This may prevent         *)
-(* learners to learn about a chosen value without triggering a new         *)
-(* proposal.  In practice the same problem happens with crashes (which are *)
-(* not modeled here), and Lamport addresses it in section 2.3.             *)
+(* However the algorithm violates this property.  This is however not a    *)
+(* problem: it may prevent learners to learn about a chosen value without  *)
+(* triggering a new proposal.  In practice the same problem happens with   *)
+(* crashes (which are not modeled here), and Lamport addresses it in       *)
+(* section 2.3.                                                            *)
 (***************************************************************************)
 Agreement == 
     \A c \in C : [](IsChosen(c, accepted) => 
@@ -204,5 +214,5 @@ Agreement ==
 
 =============================================================================
 \* Modification History
-\* Last modified Sun Aug 30 14:36:50 EDT 2015 by nano
+\* Last modified Sun Aug 30 14:59:19 EDT 2015 by nano
 \* Created Sat Aug 29 17:37:33 EDT 2015 by nano
