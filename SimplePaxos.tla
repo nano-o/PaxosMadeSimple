@@ -145,8 +145,7 @@ HighestAccepted(p, Q) ==
 (* A proposer can propose a command if it has not already done so for its  *)
 (* current proposal number and if it has received reponses to its prepare  *)
 (* message from a majority of acceptors.                                   *)
-(***************************************************************************) 
-\* Anothe way to fix the "bug" reported on stackoverflow would be to send the proposal only to the members of Q.
+(***************************************************************************)
 Propose(p) == 
     /\  proposed[p] = FALSE \* Don't let p propose different values with the same proposal number.
     /\  \E Q \in MajoritySets :   
@@ -167,13 +166,18 @@ Propose(p) ==
     /\  UNCHANGED <<proposalNumber, accepted, lastPromise, numbersUsed>> 
              
 (***************************************************************************)
-(* An acceptor accepts a proposal.                                         *)
+(* An acceptor accepts a proposal.  In the paper, it is not said that,     *)
+(* after accepting a command, p should not accept new commands that have a *)
+(* lower number.  However this leads to a bug, which can be found by TLC   *)
+(* by remove the line as instructed below.  This bug is discussed on       *)
+(* stackoverflow:                                                          *)
+(* `^\url{http://stackoverflow.com/questions/29880949/contradiction-in-lamports-paxos-made-simple-paper}^' *)
 (***************************************************************************)   
 Accept(p) ==
     /\  \E m \in network :
             /\  m.type = "propose"
             /\  m.proposal.number \geq lastPromise[p]
-            \* One way to fix the "bug" reported on stackoverflow:
+            \* One way to fix the "bug" reported on stackoverflow (remove this line to reproduce the bug):
             /\  lastPromise' = [lastPromise EXCEPT ![p] = m.proposal.number]
             /\  accepted' = [accepted EXCEPT ![p] = m.proposal]
     /\  UNCHANGED  <<network, proposalNumber, proposed, numbersUsed>>
@@ -195,24 +199,22 @@ IsChosen(c, acc) ==
 (* can be chosen at a later time.                                          *)
 (*                                                                         *)
 (* One might be tempted to add the fact that IsChosen(c, accepted) must be *)
-(* stable, like this:                                                      *)
+(* stable, like below.  However the algorithm violates this property.      *)
+(* This is however not a problem: it may prevent learners to learn about a *)
+(* chosen value without triggering a new proposal.  In practice the same   *)
+(* problem happens with crashes (which are not modeled here), and Lamport  *)
+(* addresses it in section 2.3.                                            *)
 (*                                                                         *)
-(* Agreement ==                                                            *)
+(* WrongAgreement ==                                                       *)
 (*     \A c \in C : [](IsChosen(c, accepted) =>                            *)
-(*         /\  (\A d \in C : d # c => [](\neg IsChosen(d, accepted))))     *)
-(*         /\  [](IsChosen(c, accepted)                                    *)
-(*                                                                         *)
-(* However the algorithm violates this property.  This is however not a    *)
-(* problem: it may prevent learners to learn about a chosen value without  *)
-(* triggering a new proposal.  In practice the same problem happens with   *)
-(* crashes (which are not modeled here), and Lamport addresses it in       *)
-(* section 2.3.                                                            *)
+(*         /\  (\A d \in C : d # c => [](\neg IsChosen(d, accepted)))      *)
+(*         /\  []IsChosen(c, accepted))                                    *)
 (***************************************************************************)
 Agreement == 
     \A c \in C : [](IsChosen(c, accepted) => 
         (\A d \in C : d # c => [](\neg IsChosen(d, accepted))))
-
+        
 =============================================================================
 \* Modification History
-\* Last modified Sun Aug 30 14:59:19 EDT 2015 by nano
+\* Last modified Sun Aug 30 15:21:48 EDT 2015 by nano
 \* Created Sat Aug 29 17:37:33 EDT 2015 by nano

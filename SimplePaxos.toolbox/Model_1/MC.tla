@@ -12,31 +12,31 @@ p1, p2, p3
 ----
 
 \* MV CONSTANT definitions C
-const_1440961039799472000 == 
+const_1440962536162509000 == 
 {c1, c2}
 ----
 
 \* MV CONSTANT definitions P
-const_1440961039809473000 == 
+const_1440962536172510000 == 
 {p1, p2, p3}
 ----
 
 \* CONSTANT definition @modelParameterDefinitions:0
-def_ov_1440961039819474000 ==
+def_ov_1440962536183511000 ==
 0..3
 ----
 \* INIT definition @modelBehaviorInit:0
-init_1440961039830475000 ==
+init_1440962536193512000 ==
 Init
 ----
 \* NEXT definition @modelBehaviorNext:0
-next_1440961039840476000 ==
+next_1440962536203513000 ==
 Next
 ----
-\* INVARIANT definition @modelCorrectnessInvariants:0
-inv_1440961039850477000 ==
-TypeInvariant
+\* PROPERTY definition @modelCorrectnessProperties:0
+prop_1440962536213514000 ==
+Agreement
 ----
 =============================================================================
 \* Modification History
-\* Created Sun Aug 30 14:57:19 EDT 2015 by nano
+\* Created Sun Aug 30 15:22:16 EDT 2015 by nano
