@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<launchConfiguration type="org.lamport.tla.toolbox.tool.tlc.modelCheck">
+<stringAttribute key="TLCCmdLineParameters" value=""/>
+<intAttribute key="autoLockTime" value="15"/>
+<stringAttribute key="configurationName" value="Model_1"/>
+<intAttribute key="dfidDepth" value="100"/>
+<booleanAttribute key="dfidMode" value="false"/>
+<intAttribute key="distributedFPSetCount" value="0"/>
+<stringAttribute key="distributedNetworkInterface" value="192.168.122.1"/>
+<stringAttribute key="distributedTLC" value="off"/>
+<stringAttribute key="distributedTLCVMArgs" value=""/>
+<intAttribute key="fpBits" value="0"/>
+<intAttribute key="fpIndex" value="1"/>
+<intAttribute key="maxHeapSize" value="78"/>
+<intAttribute key="maxSetSize" value="1000000"/>
+<booleanAttribute key="mcMode" value="true"/>
+<stringAttribute key="modelBehaviorInit" value="Init"/>
+<stringAttribute key="modelBehaviorNext" value="Next"/>
+<stringAttribute key="modelBehaviorSpec" value=""/>
+<intAttribute key="modelBehaviorSpecType" value="2"/>
+<stringAttribute key="modelBehaviorVars" value="lastPromise, network, proposalNumber, proposedCommand, accepted, chosen"/>
+<booleanAttribute key="modelCorrectnessCheckDeadlock" value="false"/>
+<listAttribute key="modelCorrectnessInvariants">
+<listEntry value="0Cardinality(chosen) &lt;= 1"/>
+</listAttribute>
+<listAttribute key="modelCorrectnessProperties">
+<listEntry value="1[](IsChosen(c1, accepted) =&gt; [](\neg IsChosen(c2, accepted)))"/>
+</listAttribute>
+<stringAttribute key="modelExpressionEval" value=""/>
+<stringAttribute key="modelParameterActionConstraint" value=""/>
+<listAttribute key="modelParameterConstants">
+<listEntry value="C;;{c1, c2};1;0"/>
+<listEntry value="P;;{p1, p2, p3};1;0"/>
+</listAttribute>
+<stringAttribute key="modelParameterContraint" value=""/>
+<listAttribute key="modelParameterDefinitions">
+<listEntry value="Nat;;0..3;0;0"/>
+</listAttribute>
+<stringAttribute key="modelParameterModelValues" value="{}"/>
+<stringAttribute key="modelParameterNewDefinitions" value="Init1 ==&#10;/\  accepted = ( p1 :&gt; [number |-&gt; 3, command |-&gt; c1] @@&#10;  p2 :&gt; [number |-&gt; 3, command |-&gt; c1] @@&#10;  p3 :&gt; &lt;&lt;&gt;&gt; )&#10;/\  chosen = {c1}&#10;/\  lastPromise = (p1 :&gt; 2 @@ p2 :&gt; 3 @@ p3 :&gt; 3)&#10;/\  network = { [number |-&gt; 1, type |-&gt; &quot;prepare&quot;],&#10;  [number |-&gt; 2, type |-&gt; &quot;prepare&quot;],&#10;  [number |-&gt; 3, type |-&gt; &quot;prepare&quot;],&#10;  [type |-&gt; &quot;propose&quot;, proposal |-&gt; [number |-&gt; 2, command |-&gt; c2]],&#10;  [type |-&gt; &quot;propose&quot;, proposal |-&gt; [number |-&gt; 3, command |-&gt; c1]],&#10;  [number |-&gt; 2, type |-&gt; &quot;prepare-response&quot;, proposal |-&gt; &lt;&lt;&gt;&gt;, from |-&gt; p1],&#10;  [number |-&gt; 2, type |-&gt; &quot;prepare-response&quot;, proposal |-&gt; &lt;&lt;&gt;&gt;, from |-&gt; p2],&#10;  [number |-&gt; 3, type |-&gt; &quot;prepare-response&quot;, proposal |-&gt; &lt;&lt;&gt;&gt;, from |-&gt; p2],&#10;  [number |-&gt; 3, type |-&gt; &quot;prepare-response&quot;, proposal |-&gt; &lt;&lt;&gt;&gt;, from |-&gt; p3] }&#10;/\  proposalNumber = (p1 :&gt; 1 @@ p2 :&gt; 2 @@ p3 :&gt; 3)&#10;/\  proposedCommand = (p1 :&gt; &quot;none&quot; @@ p2 :&gt; c2 @@ p3 :&gt; c1)"/>
+<intAttribute key="numberOfWorkers" value="8"/>
+<booleanAttribute key="recover" value="false"/>
+<stringAttribute key="result.mail.address" value=""/>
+<intAttribute key="simuAril" value="-1"/>
+<intAttribute key="simuDepth" value="100"/>
+<intAttribute key="simuSeed" value="-1"/>
+<stringAttribute key="specName" value="SimplePaxos"/>
+<listAttribute key="traceExploreExpressions">
+<listEntry value="1IsChosen(c1,accepted)"/>
+<listEntry value="1IsChosen(c2,accepted)"/>
+</listAttribute>
+<stringAttribute key="view" value=""/>
+</launchConfiguration>
