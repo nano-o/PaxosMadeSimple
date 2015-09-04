@@ -18,23 +18,26 @@
 <stringAttribute key="modelBehaviorNext" value="Next"/>
 <stringAttribute key="modelBehaviorSpec" value=""/>
 <intAttribute key="modelBehaviorSpecType" value="2"/>
-<stringAttribute key="modelBehaviorVars" value="lastPromise, numbersUsed, network, proposalNumber, proposed, accepted"/>
+<stringAttribute key="modelBehaviorVars" value="accepted, network, lastPromise, chosen, proposed, numbersUsed, proposalNumber"/>
 <booleanAttribute key="modelCorrectnessCheckDeadlock" value="false"/>
 <listAttribute key="modelCorrectnessInvariants">
 <listEntry value="0TypeInvariant"/>
+<listEntry value="1Cardinality(chosen) &lt;= 1"/>
 </listAttribute>
 <listAttribute key="modelCorrectnessProperties">
-<listEntry value="1Agreement"/>
+<listEntry value="0Agreement"/>
+<listEntry value="0Test"/>
+<listEntry value="0P3b"/>
 </listAttribute>
 <stringAttribute key="modelExpressionEval" value=""/>
 <stringAttribute key="modelParameterActionConstraint" value=""/>
 <listAttribute key="modelParameterConstants">
-<listEntry value="C;;{c1, c2};1;0"/>
-<listEntry value="P;;{p1, p2, p3};1;0"/>
+<listEntry value="C;;{c1, c2};1;1"/>
+<listEntry value="P;;{p1, p2, p3};1;1"/>
 </listAttribute>
-<stringAttribute key="modelParameterContraint" value=""/>
+<stringAttribute key="modelParameterContraint" value="proposalNumber[p3] &gt;= proposalNumber[p2] /\ proposalNumber[p3] &gt;= proposalNumber[p1] /\ proposalNumber[p2] &gt;= proposalNumber[p1]&#10;/\ (\E p \in P : accepted[p] # &lt;&lt;&gt;&gt; /\ accepted[p].number = proposalNumber[p1] =&gt; \A q \in P : accepted[q] # &lt;&lt;&gt;&gt; /\ accepted[q].number = proposalNumber[p2] =&gt; accepted[q].command # accepted[p].command)"/>
 <listAttribute key="modelParameterDefinitions">
-<listEntry value="Nat;;0..3;0;0"/>
+<listEntry value="Nat;;0..4;0;0"/>
 </listAttribute>
 <stringAttribute key="modelParameterModelValues" value="{}"/>
 <stringAttribute key="modelParameterNewDefinitions" value=""/>
@@ -48,6 +51,7 @@
 <listAttribute key="traceExploreExpressions">
 <listEntry value="1IsChosen(c1,accepted)"/>
 <listEntry value="1IsChosen(c2,accepted)"/>
+<listEntry value="0accepted[p1] # &lt;&lt;&gt;&gt;"/>
 </listAttribute>
 <stringAttribute key="view" value=""/>
 </launchConfiguration>

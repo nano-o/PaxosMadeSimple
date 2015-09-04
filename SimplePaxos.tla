@@ -8,7 +8,7 @@
 (* value.                                                                  *)
 (***************************************************************************)
 
-EXTENDS Naturals, FiniteSets
+EXTENDS Naturals, FiniteSets, TLC, Library
 
 (***************************************************************************)
 (* We consider a set of processes P, each of which plays both the roles of *)
@@ -29,10 +29,8 @@ VARIABLES
     proposed,
     accepted,
     lastPromise,
-    network
-
-vars == <<proposalNumber, proposed, accepted, 
-    lastPromise, network>>
+    network,
+    chosen
     
 (***************************************************************************)
 (* We assume that proposal numbers start at 1 and we will use 0 to         *)
@@ -71,6 +69,7 @@ TypeInvariant ==
         /\  accepted[p] \in Proposal  \cup {<<>>} \* The last proposal that p has accepted.
         /\  lastPromise[p] \in ProposalNum \cup {0} \* The last promise made by p.
         /\  network \in SUBSET Msgs \* A set of messages.
+        /\  chosen \in SUBSET C
 
 Init == 
     /\  proposalNumber = [p \in P |-> 0]
@@ -79,6 +78,7 @@ Init ==
     /\  accepted = [p \in P |-> <<>>]
     /\  lastPromise = [p \in P |-> 0]
     /\  network = {}
+    /\  chosen = {}
     
 (***************************************************************************)
 (* The proposer p starts the prepare phase by chosing a new proposal       *)
@@ -99,7 +99,7 @@ Prepare(p) == \E n \in ProposalNum :
     /\  proposed' = [proposed EXCEPT ![p] = FALSE]
     /\  network' = network \cup {[type |-> "prepare", number |-> n]}
     /\  numbersUsed' = [numbersUsed EXCEPT ![p] = @ \cup {n}]
-    /\  UNCHANGED <<accepted, lastPromise>>
+    /\  UNCHANGED <<accepted, lastPromise,  chosen>>
 
 PrepareReponse(p) == 
     /\  \E m \in network :
@@ -111,7 +111,7 @@ PrepareReponse(p) ==
                     from |-> p, 
                     highestAccepted |-> accepted[p], 
                     number |-> m.number ]}
-    /\  UNCHANGED <<proposalNumber, accepted, proposed, numbersUsed>>
+    /\  UNCHANGED <<proposalNumber, accepted, proposed, numbersUsed, chosen>>
 
 MajoritySets == {Q \in SUBSET P : Cardinality(Q) > Cardinality(P) \div 2}
 
@@ -163,8 +163,15 @@ Propose(p) ==
                             /\  SendProposal(p, c)
                             /\  proposed' = 
                                         [proposed EXCEPT ![p] = TRUE]
-    /\  UNCHANGED <<proposalNumber, accepted, lastPromise, numbersUsed>> 
-             
+    /\  UNCHANGED <<proposalNumber, accepted, lastPromise, numbersUsed,  chosen>> 
+          
+        
+IsChosen(c, acc) ==
+    \E Q \in MajoritySets : \E n \in ProposalNum : \A q \in Q :
+        /\  acc[q] # <<>>
+        /\  acc[q].command = c
+        /\  acc[q].number = n \* new conjunct, without which P3b and Agreement where violated.
+         
 (***************************************************************************)
 (* An acceptor accepts a proposal.  In the paper, it is not said that,     *)
 (* after accepting a command, p should not accept new commands that have a *)
@@ -180,6 +187,9 @@ Accept(p) ==
             \* One way to fix the "bug" reported on stackoverflow (remove this line to reproduce the bug):
             /\  lastPromise' = [lastPromise EXCEPT ![p] = m.proposal.number]
             /\  accepted' = [accepted EXCEPT ![p] = m.proposal]
+            /\  IF IsChosen(m.proposal.command, accepted)
+                THEN chosen' = chosen \cup {m.proposal.command}
+                ELSE UNCHANGED chosen
     /\  UNCHANGED  <<network, proposalNumber, proposed, numbersUsed>>
 
 Next == \E p \in P :
@@ -188,11 +198,7 @@ Next == \E p \in P :
     \/  Propose(p)
     \/  Accept(p)
 
-        
-IsChosen(c, acc) ==
-    \E Q \in MajoritySets : \A q \in Q :
-        /\  acc[q] # <<>>
-        /\  acc[q].command = c
+
 
 (***************************************************************************)
 (* Agreement says that if a command is chosen, then no different command   *)
@@ -214,7 +220,32 @@ Agreement ==
     \A c \in C : [](IsChosen(c, accepted) => 
         (\A d \in C : d # c => [](\neg IsChosen(d, accepted))))
         
+(***************************************************************************)
+(* The P3b property of "Byzantine Paxos by Refinement".  This property     *)
+(* does not hold! This is probably a problem with the definition of        *)
+(* IsChosen.                                                               *)
+(***************************************************************************)
+HighestNumbered(proposals) ==
+    Max(proposals, LAMBDA p1,p2 : p1.number <= p2.number)
+
+P3b ==
+    \A c \in C : [](IsChosen(c, accepted) =>
+        []( \A Q \in MajoritySets : 
+                LET acceptedInQ == {prop \in {accepted[q] : q \in Q} : prop # <<>>}
+                IN  \/ acceptedInQ = {}
+                    \/ HighestNumbered(acceptedInQ).command = c ))
+    
+Test ==
+    \A c \in C : [](IsChosen(c, accepted) =>
+        \A p \in P : \A n \in ProposalNum : 
+            accepted[p] = [command |-> c, number |-> n] =>
+                [](\A q \in P : \A m \in ProposalNum :
+                    /\ accepted[q] # <<>>
+                    /\ m \geq n
+                    /\ accepted[q].number = m
+                    => accepted[q].command = c))             
+        
 =============================================================================
 \* Modification History
-\* Last modified Sun Aug 30 15:21:48 EDT 2015 by nano
+\* Last modified Thu Sep 03 12:42:26 EDT 2015 by nano
 \* Created Sat Aug 29 17:37:33 EDT 2015 by nano
