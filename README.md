@@ -5,4 +5,4 @@ Can be model-checked by opening the spec in the TLA toolbox and instructing the 
 
 Some people noted that there is a problem in the algorithm as described in the paper:
 http://stackoverflow.com/questions/29880949/contradiction-in-lamports-paxos-made-simple-paper
-To have TLC find the problem, uncomment the line below the comment that reads "One way to fix the "bug" reported on stackoverflow:".
+To have TLC find the problem, remove or comment out the line below the comment that reads "One way to fix the "bug" reported on stackoverflow:".
