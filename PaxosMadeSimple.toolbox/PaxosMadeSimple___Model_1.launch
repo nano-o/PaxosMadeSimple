@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<launchConfiguration type="org.lamport.tla.toolbox.tool.tlc.modelCheck">
+<stringAttribute key="TLCCmdLineParameters" value=""/>
+<intAttribute key="autoLockTime" value="15"/>
+<stringAttribute key="configurationName" value="Model_1"/>
+<intAttribute key="dfidDepth" value="100"/>
+<booleanAttribute key="dfidMode" value="false"/>
+<intAttribute key="distributedFPSetCount" value="0"/>
+<stringAttribute key="distributedNetworkInterface" value="192.168.122.1"/>
+<stringAttribute key="distributedTLC" value="off"/>
+<stringAttribute key="distributedTLCVMArgs" value=""/>
+<intAttribute key="fpBits" value="0"/>
+<intAttribute key="fpIndex" value="1"/>
+<intAttribute key="maxHeapSize" value="10"/>
+<intAttribute key="maxSetSize" value="1000000"/>
+<booleanAttribute key="mcMode" value="true"/>
+<stringAttribute key="modelBehaviorInit" value=""/>
+<stringAttribute key="modelBehaviorNext" value=""/>
+<stringAttribute key="modelBehaviorSpec" value="Spec"/>
+<intAttribute key="modelBehaviorSpecType" value="1"/>
+<stringAttribute key="modelBehaviorVars" value="maxVBal, msgs, maxBal, maxVVal"/>
+<booleanAttribute key="modelCorrectnessCheckDeadlock" value="false"/>
+<listAttribute key="modelCorrectnessInvariants">
+<listEntry value="0TypeOK"/>
+<listEntry value="0\A v \in Value : \neg Chosen(v)"/>
+<listEntry value="1Correctness"/>
+</listAttribute>
+<listAttribute key="modelCorrectnessProperties"/>
+<stringAttribute key="modelExpressionEval" value=""/>
+<stringAttribute key="modelParameterActionConstraint" value=""/>
+<listAttribute key="modelParameterConstants">
+<listEntry value="Acceptor;;{a1, a2, a3};1;1"/>
+<listEntry value="Value;;{v1, v2};1;1"/>
+<listEntry value="Quorum;;{Q \in SUBSET Acceptor : Cardinality(Q) &gt; Cardinality(Acceptor)\div 2};0;0"/>
+</listAttribute>
+<stringAttribute key="modelParameterContraint" value=""/>
+<listAttribute key="modelParameterDefinitions">
+<listEntry value="None;;None;1;0"/>
+<listEntry value="Nat;;0..3;0;0"/>
+</listAttribute>
+<stringAttribute key="modelParameterModelValues" value="{}"/>
+<stringAttribute key="modelParameterNewDefinitions" value=""/>
+<intAttribute key="numberOfWorkers" value="2"/>
+<booleanAttribute key="recover" value="false"/>
+<stringAttribute key="result.mail.address" value=""/>
+<intAttribute key="simuAril" value="-1"/>
+<intAttribute key="simuDepth" value="100"/>
+<intAttribute key="simuSeed" value="-1"/>
+<stringAttribute key="specName" value="PaxosMadeSimple"/>
+<stringAttribute key="view" value=""/>
+</launchConfiguration>

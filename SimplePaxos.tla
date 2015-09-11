@@ -243,9 +243,9 @@ Test ==
                     /\ accepted[q] # <<>>
                     /\ m \geq n
                     /\ accepted[q].number = m
-                    => accepted[q].command = c))             
+                    => accepted[q].command = c))  
         
 =============================================================================
 \* Modification History
-\* Last modified Thu Sep 03 12:42:26 EDT 2015 by nano
+\* Last modified Fri Sep 04 08:32:22 EDT 2015 by nano
 \* Created Sat Aug 29 17:37:33 EDT 2015 by nano
