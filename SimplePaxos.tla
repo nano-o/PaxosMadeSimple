@@ -86,8 +86,7 @@ Init ==
 (* lower number and to report the highest proposal that they have          *)
 (* accepted.                                                               *)
 (*                                                                         *)
-(* We require that two different proposers never use the same proposal     *)
-(* numbers.                                                                *)
+(* Two different proposers never use the same proposal numbers.            *)
 (*                                                                         *)
 (* Note that a proposer can start a new prepare phase with a greater       *)
 (* proposal number at any time.                                            *)
@@ -173,19 +172,18 @@ IsChosen(c, acc) ==
         /\  acc[q].number = n \* new conjunct, without which P3b and Agreement where violated.
          
 (***************************************************************************)
-(* An acceptor accepts a proposal.  In the paper, it is not said that,     *)
+(* An acceptor accepts a proposal.  A Stackoverflow answer claims that     *)
 (* after accepting a command, p should not accept new commands that have a *)
-(* lower number.  However this leads to a bug, which can be found by TLC   *)
-(* by remove the line as instructed below.  This bug is discussed on       *)
-(* stackoverflow:                                                          *)
+(* lower number.  However this is wrong: an acceptor can safely vote for a *)
+(* value in a round higher than its current round and without joining that *)
+(* higher round.                                                           *)
 (* `^\url{http://stackoverflow.com/questions/29880949/contradiction-in-lamports-paxos-made-simple-paper}^' *)
 (***************************************************************************)   
 Accept(p) ==
     /\  \E m \in network :
             /\  m.type = "propose"
             /\  m.proposal.number \geq lastPromise[p]
-            \* One way to fix the "bug" reported on stackoverflow (remove this line to reproduce the bug):
-            /\  lastPromise' = [lastPromise EXCEPT ![p] = m.proposal.number]
+            /\  lastPromise' = lastPromise \* Here we do not update lastPromise.
             /\  accepted' = [accepted EXCEPT ![p] = m.proposal]
             /\  IF IsChosen(m.proposal.command, accepted)
                 THEN chosen' = chosen \cup {m.proposal.command}
@@ -197,8 +195,6 @@ Next == \E p \in P :
     \/  PrepareReponse(p)
     \/  Propose(p)
     \/  Accept(p)
-
-
 
 (***************************************************************************)
 (* Agreement says that if a command is chosen, then no different command   *)
@@ -234,18 +230,8 @@ P3b ==
                 LET acceptedInQ == {prop \in {accepted[q] : q \in Q} : prop # <<>>}
                 IN  \/ acceptedInQ = {}
                     \/ HighestNumbered(acceptedInQ).command = c ))
-    
-Test ==
-    \A c \in C : [](IsChosen(c, accepted) =>
-        \A p \in P : \A n \in ProposalNum : 
-            accepted[p] = [command |-> c, number |-> n] =>
-                [](\A q \in P : \A m \in ProposalNum :
-                    /\ accepted[q] # <<>>
-                    /\ m \geq n
-                    /\ accepted[q].number = m
-                    => accepted[q].command = c))  
         
 =============================================================================
 \* Modification History
-\* Last modified Fri Sep 04 08:32:22 EDT 2015 by nano
+\* Last modified Fri Aug 04 16:07:50 PDT 2017 by nano
 \* Created Sat Aug 29 17:37:33 EDT 2015 by nano

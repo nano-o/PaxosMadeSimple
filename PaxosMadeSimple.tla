@@ -3,10 +3,6 @@
 (* A specification of the algorithm described in "Paxos Made Simple",      *)
 (* based on the specification found in:                                    *)
 (* `^\url{research.microsoft.com/en-us/um/people/lamport/tla/PConProof.tla}^' *)
-(*                                                                         *)
-(* The algorithm presented in "Paxos Made Simple", if followed to the      *)
-(* letter, has a bug.  This specification has the bug too.  Can you find   *)
-(* it and fix it?                                                          *)
 (***************************************************************************)
 EXTENDS Integers, FiniteSets
 -----------------------------------------------------------------------------
@@ -138,7 +134,7 @@ Message ==      [type : {"1a"}, bal : Ballot]
   macro Phase2a(v) {
     when /\ sentMsgs("2a", self) = {}
          /\ \E Q \in Quorum : ShowsSafeAt(Q, self, v);
-    msgs := msgs \cup {[type |-> "2a", bal |-> self, val |-> v]} 
+    msgs := msgs \cup {[type |-> "2a", bal |-> self, val |-> v]};
    }
 
   (*************************************************************************)
@@ -149,12 +145,16 @@ Message ==      [type : {"1a"}, bal : Ballot]
   (* Note that the acceptor `self' does not accept any proposal with a     *)
   (* ballot lower than b, as per its promise to the leader of ballot b in  *)
   (* Phase1b above.                                                        *)
+  (*                                                                       *)
+  (* Note that there is not need to update maxBal.                         *)
   (*************************************************************************)
   macro Phase2b(b) {
     when b \geq maxBal[self] ;
     with (m \in sentMsgs("2a", b)) {
-      maxVBal[self] := b ;
-      maxVVal[self] := m.val;
+      if (b \geq maxVBal[self]) {
+        maxVBal[self] := b;
+        maxVVal[self] := m.val
+      };
       msgs := msgs \cup {[type |-> "2b", acc |-> self, 
                              bal |-> b, val |-> m.val]}
     }
@@ -168,9 +168,7 @@ Message ==      [type : {"1a"}, bal : Ballot]
   (*************************************************************************)
   process (acceptor \in Acceptor) {
     acc: while (TRUE) { 
-           with (b \in Ballot) { either Phase1b(b) or Phase2b(b) 
-          }
-    }
+            with (b \in Ballot) { either Phase1b(b) or Phase2b(b)  } }
    }
 
   (*************************************************************************)
@@ -195,7 +193,6 @@ Message ==      [type : {"1a"}, bal : Ballot]
 (* algorithm above.                                                        *)
 (***************************************************************************)
 \* BEGIN TRANSLATION
-
 VARIABLES maxBal, maxVBal, maxVVal, msgs
 
 (* define statement *)
@@ -207,11 +204,17 @@ Max(xs, LessEq(_,_)) ==
 HighestAcceptedValue(Q1bMessages) ==
     Max(Q1bMessages, LAMBDA m1,m2 : m1.mbal \leq m2.mbal).mval
 
+
+
+
+
+
 ShowsSafeAt(Q, b, v) ==
   LET Q1b == {m \in sentMsgs("1b", b) : m.acc \in Q}
   IN  /\ \A a \in Q : \E m \in Q1b : m.acc = a
       /\ \/ \A m \in Q1b : m.mbal = -1
          \/ v = HighestAcceptedValue(Q1b)
+
 
 vars == << maxBal, maxVBal, maxVVal, msgs >>
 
@@ -231,8 +234,11 @@ acceptor(self) == \E b \in Ballot:
                        /\ UNCHANGED <<maxVBal, maxVVal>>
                     \/ /\ b \geq maxBal[self]
                        /\ \E m \in sentMsgs("2a", b):
-                            /\ maxVBal' = [maxVBal EXCEPT ![self] = b]
-                            /\ maxVVal' = [maxVVal EXCEPT ![self] = m.val]
+                            /\ IF b \geq maxVBal[self]
+                                  THEN /\ maxVBal' = [maxVBal EXCEPT ![self] = b]
+                                       /\ maxVVal' = [maxVVal EXCEPT ![self] = m.val]
+                                  ELSE /\ TRUE
+                                       /\ UNCHANGED << maxVBal, maxVVal >>
                             /\ msgs' = (msgs \cup {[type |-> "2b", acc |-> self,
                                                        bal |-> b, val |-> m.val]})
                        /\ UNCHANGED maxBal
@@ -294,9 +300,12 @@ Correctness ==
 (***************************************************************************)
 THEOREM Spec => []Correctness
 
-
+Votes == [a \in Acceptor |-> 
+    [b \in Nat |-> IF \E  v \in Value : [type |-> "2b", bal |-> b, acc |-> a, val |-> v] \in msgs
+        THEN CHOOSE v \in Value : [type |-> "2b", bal |-> b, acc |-> a, val |-> v] \in msgs
+        ELSE <<>>]]
 
 =============================================================================
 \* Modification History
-\* Last modified Fri Sep 04 16:24:33 EDT 2015 by nano
+\* Last modified Fri Aug 04 16:16:29 PDT 2017 by nano
 \* Created Thu Sep 03 22:58:03 EDT 2015 by nano
