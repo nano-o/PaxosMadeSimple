@@ -12,37 +12,29 @@ v1, v2
 ----
 
 \* MV CONSTANT definitions Acceptor
-const_144139943710210000 == 
+const_172134189577118000 == 
 {a1, a2, a3}
 ----
 
 \* MV CONSTANT definitions Value
-const_144139943711311000 == 
+const_172134189577119000 == 
 {v1, v2}
 ----
 
 \* SYMMETRY definition
-symm_144139943712312000 == 
-Permutations(const_144139943710210000) \union Permutations(const_144139943711311000)
+symm_172134189577120000 == 
+Permutations(const_172134189577118000) \union Permutations(const_172134189577119000)
 ----
 
 \* CONSTANT definitions @modelParameterConstants:2Quorum
-const_144139943713313000 == 
-{Q \in SUBSET Acceptor : Cardinality(Q) > Cardinality(Acceptor)\div 2}
+const_172134189577121000 == 
+{Q \in SUBSET Acceptor : 2*Cardinality(Q) > Cardinality(Acceptor)}
 ----
 
 \* CONSTANT definition @modelParameterDefinitions:1
-def_ov_144139943715315000 ==
+def_ov_172134189577123000 ==
 0..3
-----
-\* SPECIFICATION definition @modelBehaviorSpec:0
-spec_144139943716316000 ==
-Spec
-----
-\* INVARIANT definition @modelCorrectnessInvariants:0
-inv_144139943717317000 ==
-Correctness
 ----
 =============================================================================
 \* Modification History
-\* Created Fri Sep 04 16:43:57 EDT 2015 by nano
+\* Created Thu Jul 18 15:31:35 PDT 2024 by nano
