@@ -33,17 +33,14 @@ Message ==      [type : {"1a"}, bal : Ballot]
             msgs = {}
   define {
     sentMsgs(t, b) == {m \in msgs : (m.type = t) /\ (m.bal = b)}
-
-    Max(M) == \* A message with the highest ballot number among the set of messages ms
-        CHOOSE maxM \in M : \A m \in M : m.mbal \leq maxM.mbal
-      
-    HighestAcceptedValue(Q1bMessages) == Max(Q1bMessages).mval
     
     ShowsSafeAt(Q, b, v) ==
       LET Q1b == {m \in sentMsgs("1b", b) : m.acc \in Q}
       IN  /\ \A a \in Q : \E m \in Q1b : m.acc = a 
           /\ \/ \A m \in Q1b : m.mbal = -1
-             \/ v = HighestAcceptedValue(Q1b)
+             \/ \E m \in Q1b :
+                /\ m.mval = v
+                /\ \A m1 \in Q1b : m1.mbal <= m.mbal
     }
  
   macro Phase1a() { msgs := msgs \cup {[type |-> "1a", bal |-> self]} ; }
@@ -84,22 +81,19 @@ Message ==      [type : {"1a"}, bal : Ballot]
    }
 }
 *)
-\* BEGIN TRANSLATION (chksum(pcal) = "5a327fbd" /\ chksum(tla) = "7965ea3c")
+\* BEGIN TRANSLATION (chksum(pcal) = "c48275ec" /\ chksum(tla) = "72a9972f")
 VARIABLES maxBal, maxVBal, maxVVal, msgs
 
 (* define statement *)
 sentMsgs(t, b) == {m \in msgs : (m.type = t) /\ (m.bal = b)}
 
-Max(M) ==
-    CHOOSE maxM \in M : \A m \in M : m.mbal \leq maxM.mbal
-
-HighestAcceptedValue(Q1bMessages) == Max(Q1bMessages).mval
-
 ShowsSafeAt(Q, b, v) ==
   LET Q1b == {m \in sentMsgs("1b", b) : m.acc \in Q}
   IN  /\ \A a \in Q : \E m \in Q1b : m.acc = a
       /\ \/ \A m \in Q1b : m.mbal = -1
-         \/ v = HighestAcceptedValue(Q1b)
+         \/ \E m \in Q1b :
+            /\ m.mval = v
+            /\ \A m1 \in Q1b : m1.mbal <= m.mbal
 
 
 vars == << maxBal, maxVBal, maxVVal, msgs >>
