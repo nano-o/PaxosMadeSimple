@@ -22,10 +22,10 @@ pcal: tla2tools.jar PaxosMadeSimple.tla
 typecheck: $(APA) Paxos.tla ApaPaxos.tla
 	APA=$(APA) ./check.sh -typecheck Paxos
 
+inductive: $(APA) Paxos.tla ApaPaxos.tla
+	APA=$(APA) ./check.sh -inductive Invariant1 Paxos
+
 # Don't redownload stuff every time
 .PRECIOUS: $(APA) $(TOOLS_JAR)
 
-# check: $(APA) TetraBFT.tla ApaTetraBFT.tla
-	# APA=$(APA) ./check.sh -inductive Invariant TetraBFT
-
-.PHONY: tlc
+.PHONY: tlc pcal typecheck inductive

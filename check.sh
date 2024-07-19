@@ -12,8 +12,8 @@ case "$1" in
     -inductive)
         shift
         FILE="Apa${2}.tla"
-        $APA/bin/apalache-mc check --init=Init --inv=$1 --length=0 $FILE
-        JVM_ARGS="-Xmx25G" time $APA/bin/apalache-mc check --tuning-options=search.invariant.mode=after:"search.invariantFilter=1->.*" --init="${1}_" --inv=$1 --length=1 $FILE
+        $APA/bin/apalache-mc check --init=Init --inv=$1 --length=0 --config="Apa${2}.cfg" $FILE
+        JVM_ARGS="-Xmx25G" time $APA/bin/apalache-mc check --tuning-options=search.invariant.mode=after:"search.invariantFilter=1->.*" --init="${1}_" --inv=$1 --length=1 --config="Apa${2}.cfg" $FILE
         ;;
     -inductive-step-only)
         shift
