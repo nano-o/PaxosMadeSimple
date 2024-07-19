@@ -7,7 +7,7 @@
 (* Look there for comments.                                              *)
 (*************************************************************************)
 
-EXTENDS Integers, FiniteSets, TLC
+EXTENDS Integers, FiniteSets
 
 CONSTANT Value, Acceptor, Quorum
 
@@ -46,7 +46,7 @@ Message ==      [type : {"1a"}, bal : Ballot]
   macro Phase1a() { msgs := msgs \cup {[type |-> "1a", bal |-> self]} ; }
   
   macro Phase1b(b) {
-    when (b > maxBal[self]) /\ (sentMsgs("1a", b) # {});
+    when b > maxBal[self] /\ sentMsgs("1a", b) # {};
     maxBal[self] := b;
     msgs := msgs \cup {[type |-> "1b", acc |-> self, bal |-> b, 
                         mbal |-> maxVBal[self], mval |-> maxVVal[self]]} ;

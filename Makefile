@@ -4,8 +4,8 @@ TOOLS_JAR_URL=https://github.com/tlaplus/tlaplus/releases/download/v1.7.3/tla2to
 $(TOOLS_JAR):
 	wget --no-check-certificate --content-disposition -O $@ $(TOOLS_JAR_URL)
 
-tlc: tla2tools.jar PaxosMadeSimple.tla PaxosMadeSimple.cfg
-	java -XX:+UseParallelGC -jar tla2tools.jar -config PaxosMadeSimple.cfg -workers 4 PaxosMadeSimple.tla
+tlc: tla2tools.jar PaxosMadeSimple.tla TLCPaxosMadeSimple.tla TLCPaxosMadeSimple.cfg
+	java -XX:+UseParallelGC -jar tla2tools.jar -config TLCPaxosMadeSimple.cfg -workers 4 TLCPaxosMadeSimple.tla
 
 # Don't redownload stuff every time
 .PRECIOUS: $(TOOLS_JAR)
