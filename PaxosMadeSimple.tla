@@ -81,7 +81,7 @@ Message ==      [type : {"1a"}, bal : Ballot]
    }
 }
 *)
-\* BEGIN TRANSLATION (chksum(pcal) = "c48275ec" /\ chksum(tla) = "72a9972f")
+\* BEGIN TRANSLATION (chksum(pcal) = "39408c33" /\ chksum(tla) = "ed3338c5")
 VARIABLES maxBal, maxVBal, maxVVal, msgs
 
 (* define statement *)
@@ -107,7 +107,7 @@ Init == (* Global variables *)
         /\ msgs = {}
 
 acceptor(self) == \E b \in Ballot:
-                    \/ /\ (b > maxBal[self]) /\ (sentMsgs("1a", b) # {})
+                    \/ /\ b > maxBal[self] /\ sentMsgs("1a", b) # {}
                        /\ maxBal' = [maxBal EXCEPT ![self] = b]
                        /\ msgs' = (msgs \cup {[type |-> "1b", acc |-> self, bal |-> b,
                                                mbal |-> maxVBal[self], mval |-> maxVVal[self]]})

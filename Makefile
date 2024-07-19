@@ -7,6 +7,9 @@ $(TOOLS_JAR):
 tlc: tla2tools.jar PaxosMadeSimple.tla TLCPaxosMadeSimple.tla TLCPaxosMadeSimple.cfg
 	java -XX:+UseParallelGC -jar tla2tools.jar -config TLCPaxosMadeSimple.cfg -workers 4 TLCPaxosMadeSimple.tla
 
+pcal: tla2tools.jar PaxosMadeSimple.tla
+	java -cp tla2tools.jar pcal.trans PaxosMadeSimple.tla
+
 # Don't redownload stuff every time
 .PRECIOUS: $(TOOLS_JAR)
 
