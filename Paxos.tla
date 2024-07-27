@@ -85,4 +85,45 @@ Correctness ==
 
 THEOREM Spec => []Correctness
 
+NoFutureVote == \A m \in 2bMsgs : m.bal <= maxVBal[m.acc]
+OneVotePerBallot == \A m1,m2 \in 2aMsgs : m1.bal = m2.bal => m1 = m2
+OneValuePerBallot == \A m1,m2 \in 2bMsgs : m1.bal = m2.bal => m1.val = m2.val
+VoteForProposal == \A m1 \in 2bMsgs : \E m2 \in 2aMsgs : m1.bal = m2.bal /\ m1.val = m2.val
+
+Invariant1 == 
+    /\  OneVotePerBallot
+    /\  VoteForProposal
+    /\  OneValuePerBallot
+    /\  NoFutureVote
+    /\  \A a \in Acceptor :
+          /\ maxVBal[a] <= maxBal[a]
+          /\ maxVBal[a] # -1 => [acc |-> a, bal |-> maxVBal[a], val |-> maxVVal[a]] \in 2bMsgs
+    /\  \A m \in 2bMsgs : m.bal = maxVBal[m.acc] => m.val = maxVVal[m.acc]
+    /\  \A m \in 1bMsgs :
+        /\ m.mbal < m.bal
+        /\ m.bal <= maxBal[m.acc]
+        /\ m.mbal <= maxVBal[m.acc]
+        /\ m.mbal = maxVBal[m.acc] => m.mval = maxVVal[m.acc]
+        /\ m.mbal # -1 => [acc |-> m.acc, bal |-> m.mbal, val |-> m.mval] \in 2bMsgs
+        /\ \A m2b \in 2bMsgs : m2b.acc = m.acc => 
+              /\ \neg (m.mbal < m2b.bal /\ m2b.bal < m.bal)
+              /\ m2b.bal = m.mbal => m2b.val = m.mval
+Invariant1_ == TypeOK /\ Invariant1
+
+Choosable(b, v, Q) ==
+    \A a \in Q :
+        \/ [acc |-> a, bal |-> b, val |-> v] \in 2bMsgs
+        \/ /\ maxBal[a] <= b
+           /\ maxVBal[a] < b
+           
+SafeAt(v, b) ==
+    \A Q \in Quorum : \A w \in Value : \A c \in Ballot :
+        c < b /\ Choosable(c, w, Q) => v = w
+
+Invariant2 == \A m \in 2aMsgs :
+    SafeAt(m.val, m.bal)
+Invariant2_ == TypeOK /\ Invariant1 /\ Invariant2    
+
+Correctness_ == TypeOK /\ Invariant1 /\ Invariant2
+
 ======================================
