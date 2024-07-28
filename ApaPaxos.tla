@@ -9,7 +9,7 @@ Quorum == {{"A1_OF_ACCEPTOR", "A2_OF_ACCEPTOR"}, {"A1_OF_ACCEPTOR", "A3_OF_ACCEP
 
 ApaSomeValue == "V1_OF_VALUE"
 MaxTime == 1
-MaxBallot == 1
+MaxBallot == 2
 
 VARIABLES 
     \* @type: Int;
@@ -24,7 +24,7 @@ VARIABLES
     1aMsgs,
     \* @type: Set(<<Int, {acc : ACCEPTOR, bal : Int, mbal : Int, mval : VALUE}>>);
     1bMsgs,
-    \* @type: Set({bal : Int, val : VALUE});
+    \* @type: Set(<<Int, {bal : Int, val : VALUE}>>);
     2aMsgs,
     \* @type: Set({acc : ACCEPTOR, bal : Int, val : VALUE});
     2bMsgs,
@@ -32,10 +32,10 @@ VARIABLES
     rcvd1aMsgs,
     \* @type: Set(<<Int, {acc : ACCEPTOR, bal : Int, mbal : Int, mval : VALUE}>>);
     rcvd1bMsgs,
-    \* @type: ACCEPTOR -> Set({bal : Int, val : VALUE});
-    rcvd2aMsgs,
-    \* @type: ACCEPTOR -> Set({acc : ACCEPTOR, bal : Int, val : VALUE});
-    rcvd2bMsgs
+    \* @type: ACCEPTOR -> Set(<<Int, {bal : Int, val : VALUE}>>);
+    rcvd2aMsgs
+    \* type: ACCEPTOR -> Set({acc : ACCEPTOR, bal : Int, val : VALUE});
+    \* rcvd2bMsgs
 
 INSTANCE Paxos
 

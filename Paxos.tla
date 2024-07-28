@@ -1,7 +1,5 @@
 ------------ MODULE Paxos ------------
 
-\* TODO: we have to do everything in the receive actions, because for liveness nodes need to act on what they receive in a timely way.
-
 EXTENDS Integers, FiniteSets, TLC
 
 CONSTANT Value, Acceptor, Quorum, MaxBallot, MaxTime
@@ -14,10 +12,10 @@ SomeValue == CHOOSE v \in Value : TRUE
 
 VARIABLES maxBal, maxVBal, maxVVal,
     1aMsgs, 1bMsgs, 2aMsgs, 2bMsgs,
-    rcvd1aMsgs, rcvd1bMsgs, rcvd2aMsgs, rcvd2bMsgs,
+    rcvd1aMsgs, rcvd1bMsgs, rcvd2aMsgs,
     clock
 
-vars == << maxBal, maxVBal, maxVVal, 1aMsgs, 1bMsgs, 2aMsgs, 2bMsgs, rcvd1aMsgs, rcvd1bMsgs, rcvd2aMsgs, rcvd2bMsgs, clock >>
+vars == << maxBal, maxVBal, maxVVal, 1aMsgs, 1bMsgs, 2aMsgs, 2bMsgs, rcvd1aMsgs, rcvd1bMsgs, rcvd2aMsgs, clock >>
 
 ShowsSafeAt(Q, b, v) ==
   LET Q1b == {m \in rcvd1bMsgs : m[2].bal = b /\ m[2].acc \in Q}
@@ -38,13 +36,13 @@ Init ==
     /\ rcvd1aMsgs = [a \in Acceptor |-> {}]
     /\ rcvd1bMsgs = {} \* received by ballot leaders; no need for a function because they contain the ballot already
     /\ rcvd2aMsgs = [a \in Acceptor |-> {}]
-    /\ rcvd2bMsgs = [a \in Acceptor |-> {}]
+    \* /\ rcvd2bMsgs = [a \in Acceptor |-> {}]
     /\ clock = -1 \* the clock is started by setting it to 0
 
 StartClock ==
     /\  1aMsgs # {} \* at least one ballot must be started
     /\  clock' = 0
-    /\  UNCHANGED <<maxBal, maxVBal, maxVVal, 1aMsgs, 1bMsgs, 2aMsgs, 2bMsgs, rcvd1aMsgs, rcvd1bMsgs, rcvd2aMsgs, rcvd2bMsgs>>
+    /\  UNCHANGED <<maxBal, maxVBal, maxVVal, 1aMsgs, 1bMsgs, 2aMsgs, 2bMsgs, rcvd1aMsgs, rcvd1bMsgs, rcvd2aMsgs>>
 
 IncrementClock ==
     /\ clock >= 0
@@ -52,15 +50,16 @@ IncrementClock ==
     /\ clock' = clock + 1
     \* after the clock is started, messages must be received in a timely manner:
     /\ \A a \in Acceptor :
-        /\  \A m \in 1aMsgs : m[1] < clock => m \in rcvd1aMsgs[a]
+        /\ \A m \in 1aMsgs : m[1] < clock => m \in rcvd1aMsgs[a]
+        /\ \A m \in 2aMsgs : m[1] < clock => m \in rcvd2aMsgs[a]
     /\ \A m \in 1bMsgs : m[1] < clock => m \in rcvd1bMsgs
     \* nothing else changes except the clock:
-    /\ UNCHANGED <<maxBal, maxVBal, maxVVal, 1aMsgs, 1bMsgs, 2aMsgs, 2bMsgs, rcvd1aMsgs, rcvd1bMsgs, rcvd2aMsgs, rcvd2bMsgs>>
+    /\ UNCHANGED <<maxBal, maxVBal, maxVVal, 1aMsgs, 1bMsgs, 2aMsgs, 2bMsgs, rcvd1aMsgs, rcvd1bMsgs, rcvd2aMsgs>>
 
 Phase1a(b) ==
     /\ clock = -1 \* once the clock is started, we are in a synchronous ballot that "lasts long enough"
     /\ 1aMsgs' = 1aMsgs \cup {<<clock,b>>}
-    /\ UNCHANGED <<maxBal, maxVBal, maxVVal, 1bMsgs, 2aMsgs, 2bMsgs, rcvd1aMsgs, rcvd1bMsgs, rcvd2aMsgs, rcvd2bMsgs, clock>>
+    /\ UNCHANGED <<maxBal, maxVBal, maxVVal, 1bMsgs, 2aMsgs, 2bMsgs, rcvd1aMsgs, rcvd1bMsgs, rcvd2aMsgs, clock>>
 
 Receive1aMsg(a, m) ==
     /\  m \in 1aMsgs
@@ -70,40 +69,40 @@ Receive1aMsg(a, m) ==
             THEN \* Phase1b:
                 /\ maxBal' = [maxBal EXCEPT ![a] = b]
                 /\ 1bMsgs' = 1bMsgs \cup {<<clock, [acc |-> a, bal |-> b, mbal |-> maxVBal[a], mval |-> maxVVal[a]]>>}
-                /\ UNCHANGED <<maxVBal, maxVVal, 1aMsgs, 2aMsgs, 2bMsgs, rcvd1bMsgs, rcvd2aMsgs, rcvd2bMsgs, clock>>
-            ELSE UNCHANGED <<maxBal, maxVBal, maxVVal, 1aMsgs, 1bMsgs, 2aMsgs, 2bMsgs, rcvd1bMsgs, rcvd2aMsgs, rcvd2bMsgs, clock>>
+                /\ UNCHANGED <<maxVBal, maxVVal, 1aMsgs, 2aMsgs, 2bMsgs, rcvd1bMsgs, rcvd2aMsgs, clock>>
+            ELSE UNCHANGED <<maxBal, maxVBal, maxVVal, 1aMsgs, 1bMsgs, 2aMsgs, 2bMsgs, rcvd1bMsgs, rcvd2aMsgs, clock>>
 
 Receive1bMsg(m, v) ==
     /\  m \in 1bMsgs
     /\  rcvd1bMsgs' = rcvd1bMsgs \cup {m}
     /\  LET b == m[2].bal
-        IN  IF  /\ \A m2a \in 2aMsgs : m2a.bal # b \* NOTE keep abstract
+        IN  IF  /\ \A m2a \in 2aMsgs : m2a[2].bal # b \* NOTE keep abstract
                 /\ \E Q \in Quorum : ShowsSafeAt(Q, b, v)
             THEN \* Phase2a:
-                /\ 2aMsgs' = 2aMsgs \cup {[bal |-> b, val |-> v]}
-                /\ UNCHANGED <<1aMsgs, 1bMsgs, maxBal, maxVBal, maxVVal, 2bMsgs, rcvd1aMsgs, rcvd2aMsgs, rcvd2bMsgs, clock>>
+                /\ 2aMsgs' = 2aMsgs \cup {<<clock, [bal |-> b, val |-> v]>>}
+                /\ UNCHANGED <<1aMsgs, 1bMsgs, maxBal, maxVBal, maxVVal, 2bMsgs, rcvd1aMsgs, rcvd2aMsgs, clock>>
             ELSE 
-                UNCHANGED <<maxBal, maxVBal, maxVVal, 1aMsgs, 1bMsgs, 2aMsgs, 2bMsgs, rcvd1aMsgs, rcvd2aMsgs, rcvd2bMsgs, clock>>
+                UNCHANGED <<maxBal, maxVBal, maxVVal, 1aMsgs, 1bMsgs, 2aMsgs, 2bMsgs, rcvd1aMsgs, rcvd2aMsgs, clock>>
 
-Receive2aMsg(a, b, v) ==
-    /\ [bal |-> b, val |-> v] \in 2aMsgs
-    /\ rcvd2aMsgs' = [rcvd2aMsgs EXCEPT ![a] = @ \cup {[bal |-> b, val |-> v]}]
-    /\ UNCHANGED <<maxBal, maxVBal, maxVVal, 1aMsgs, 1bMsgs, 2aMsgs, 2bMsgs, rcvd1aMsgs, rcvd1bMsgs, rcvd2bMsgs, clock>>
+Receive2aMsg(a, m) ==
+    /\  m \in 2aMsgs
+    /\  rcvd2aMsgs' = [rcvd2aMsgs EXCEPT ![a] = @ \cup {m}]
+    /\  LET b == m[2].bal
+            v == m[2].val
+        IN  IF  b \geq maxBal[a]
+            THEN
+                /\ maxBal' = [maxBal EXCEPT ![a] = b]
+                /\ maxVBal' = [maxVBal EXCEPT ![a] = b]
+                /\ maxVVal' = [maxVVal EXCEPT ![a] = v]
+                /\ 2bMsgs' = 2bMsgs \cup {[acc |-> a, bal |-> b, val |-> v]}
+                /\ UNCHANGED <<1aMsgs, 1bMsgs, 2aMsgs, rcvd1aMsgs, rcvd1bMsgs, clock>>
+            ELSE
+                UNCHANGED <<maxBal, maxVBal, maxVVal, 1aMsgs, 1bMsgs, 2aMsgs, 2bMsgs, rcvd1aMsgs, rcvd1bMsgs, clock>>
 
-Phase2b(a, b, v) ==
-    /\ b \geq maxBal[a]
-    /\ \E m \in rcvd2aMsgs[a] :
-        /\ m.bal = b
-        /\ maxBal' = [maxBal EXCEPT ![a] = b]
-        /\ maxVBal' = [maxVBal EXCEPT ![a] = b]
-        /\ maxVVal' = [maxVVal EXCEPT ![a] = m.val]
-        /\ 2bMsgs' = 2bMsgs \cup {[acc |-> a, bal |-> b, val |-> m.val]}
-    /\ UNCHANGED <<1aMsgs, 1bMsgs, 2aMsgs, rcvd1aMsgs, rcvd1bMsgs, rcvd2aMsgs, rcvd2bMsgs, clock>>
-
-Receive2bMsg(a1, a2, b, v) ==
-    /\ [acc |-> a2, bal |-> b, val |-> v] \in 2bMsgs
-    /\ rcvd2bMsgs' = [rcvd2bMsgs EXCEPT ![a1] = @ \cup {[acc |-> a2, bal |-> b, val |-> v]}]
-    /\ UNCHANGED <<maxBal, maxVBal, maxVVal, 1aMsgs, 1bMsgs, 2aMsgs, 2bMsgs, rcvd1aMsgs, rcvd1bMsgs, rcvd2aMsgs, clock>>
+\* Receive2bMsg(a1, a2, b, v) ==
+\*     /\ [acc |-> a2, bal |-> b, val |-> v] \in 2bMsgs
+\*     /\ rcvd2bMsgs' = [rcvd2bMsgs EXCEPT ![a1] = @ \cup {[acc |-> a2, bal |-> b, val |-> v]}]
+\*     /\ UNCHANGED <<maxBal, maxVBal, maxVVal, 1aMsgs, 1bMsgs, 2aMsgs, 2bMsgs, rcvd1aMsgs, rcvd1bMsgs, rcvd2aMsgs, clock>>
 
 Next == \E t \in Time : \E b \in Ballot, v \in Value, a \in Acceptor :
     \/ StartClock
@@ -111,9 +110,8 @@ Next == \E t \in Time : \E b \in Ballot, v \in Value, a \in Acceptor :
     \/ Phase1a(b)
     \/ Receive1aMsg(a, <<t, b>>)
     \/ \E mbal \in Ballot, mval \in Value : Receive1bMsg(<<t, [acc |-> a, bal |-> b, mbal |-> mbal, mval |-> mval]>>, v)
-    \/ Receive2aMsg(a, b, v)
-    \/ Phase2b(a, b, v)
-    \/ \E a2 \in Acceptor : Receive2bMsg(a, a2, b, v)
+    \/ Receive2aMsg(a, <<t, [bal |-> b, val |-> v]>>)
+    \* \/ \E a2 \in Acceptor : Receive2bMsg(a, a2, b, v)
 
 Spec == Init /\ [][Next]_vars
 
@@ -122,17 +120,17 @@ TypeOK == /\ maxBal  \in [Acceptor -> Ballot \cup {-1}]
           /\ maxVVal \in [Acceptor -> Value \cup {SomeValue}]
           /\ 1aMsgs \in SUBSET (Time\times Ballot)
           /\ 1bMsgs \in SUBSET (Time \times [acc : Acceptor, bal : Ballot, mbal : Ballot \cup {-1}, mval : Value])
-          /\ 2aMsgs \in SUBSET [bal : Ballot, val : Value]
+          /\ 2aMsgs \in SUBSET (Time \times [bal : Ballot, val : Value])
           /\ 2bMsgs \in SUBSET [acc : Acceptor, bal : Ballot, val : Value]
           /\ rcvd1aMsgs \in [Acceptor -> SUBSET (Time\times Ballot)]
           /\ rcvd1bMsgs \in SUBSET (Time\times [acc : Acceptor, bal : Ballot, mbal : Ballot \cup {-1}, mval : Value])
-          /\ rcvd2aMsgs \in [Acceptor -> SUBSET [bal : Ballot, val : Value]]
-          /\ rcvd2bMsgs \in [Acceptor -> SUBSET [acc : Acceptor, bal : Ballot, val : Value]]
+          /\ rcvd2aMsgs \in [Acceptor -> SUBSET (Time \times [bal : Ballot, val : Value])]
+        \*   /\ rcvd2bMsgs \in [Acceptor -> SUBSET [acc : Acceptor, bal : Ballot, val : Value]]
           /\ clock \in {-1} \cup Time
 
 ChosenIn(b, v) ==
-    \E a0 \in Acceptor : \E Q \in Quorum : \A a \in Q : 
-        \E m \in rcvd2bMsgs[a0] :
+    \E Q \in Quorum : \A a \in Q : 
+        \E m \in 2bMsgs :
             /\  m.bal = b
             /\  m.acc = a
             /\  m.val = v
@@ -145,16 +143,16 @@ Correctness ==
 THEOREM Spec => []Correctness
 
 NoFutureVote == \A m \in 2bMsgs : m.bal <= maxVBal[m.acc]
-OneVotePerBallot == \A m1,m2 \in 2aMsgs : m1.bal = m2.bal => m1 = m2
+OneVotePerBallot == \A m1,m2 \in 2aMsgs : m1[2].bal = m2[2].bal => m1 = m2
 OneValuePerBallot == \A m1,m2 \in 2bMsgs : m1.bal = m2.bal => m1.val = m2.val
-VoteForProposal == \A m1 \in 2bMsgs : \E m2 \in 2aMsgs : m1.bal = m2.bal /\ m1.val = m2.val
+VoteForProposal == \A m1 \in 2bMsgs : \E m2 \in 2aMsgs : m1.bal = m2[2].bal /\ m1.val = m2[2].val
 
 TypeOK_ == TypeOK
 
 Invariant0 == \A a \in Acceptor : \A b \in Ballot :
-    /\ \A t \in Time : <<t,b>> \in rcvd1aMsgs[a] => <<t,b>> \in 1aMsgs
-    /\ \A v \in Value : [bal |-> b, val |-> v] \in rcvd2aMsgs[a] => [bal |-> b, val |-> v] \in 2aMsgs
-    /\ \A a2 \in Acceptor : \A v \in Value : [acc |-> a2, bal |-> b, val |-> v] \in rcvd2bMsgs[a] => [acc |-> a2, bal |-> b, val |-> v] \in 2bMsgs
+    /\ \A m \in rcvd1aMsgs[a] : m \in 1aMsgs
+    /\ \A m \in rcvd2aMsgs[a] : m \in 2aMsgs
+    \* /\ \A m \in rcvd2bMsgs[a] : m \in 2bMsgs
     /\ \A m \in rcvd1bMsgs : m \in 1bMsgs
 Invariant0_ == TypeOK /\ Invariant0
 
@@ -189,12 +187,17 @@ SafeAt(v, b) ==
         c < b /\ Choosable(c, w, Q) => v = w
 
 Invariant2 == \A m \in 2aMsgs :
-    SafeAt(m.val, m.bal)
+    SafeAt(m[2].val, m[2].bal)
 Invariant2_ == TypeOK /\ Invariant0 /\ Invariant1 /\ Invariant2    
 
 Correctness_ == TypeOK /\ Invariant0 /\ Invariant1 /\ Invariant2
 
 Invariant_ == TypeOK /\ Invariant0 /\ Invariant1 /\ Invariant2
 Invariant == Invariant0 /\ Invariant1 /\ Invariant2 /\ Correctness
+
+\* Now the liveness property:
+
+Liveness ==
+    clock > 1 => \E b \in Ballot, v \in Value : Chosen(v)
 
 ======================================
