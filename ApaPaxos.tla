@@ -25,7 +25,7 @@ VARIABLES
     2bMsgs,
     \* @type: ACCEPTOR -> Set(Int);
     rcvd1aMsgs,
-    \* @type: ACCEPTOR -> Set({acc : ACCEPTOR, bal : Int, mbal : Int, mval : VALUE});
+    \* @type: Set({acc : ACCEPTOR, bal : Int, mbal : Int, mval : VALUE});
     rcvd1bMsgs,
     \* @type: ACCEPTOR -> Set({bal : Int, val : VALUE});
     rcvd2aMsgs,

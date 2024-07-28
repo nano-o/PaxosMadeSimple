@@ -15,7 +15,7 @@ VARIABLES maxBal, maxVBal, maxVVal,
 vars == << maxBal, maxVBal, maxVVal, 1aMsgs, 1bMsgs, 2aMsgs, 2bMsgs, rcvd1aMsgs, rcvd1bMsgs, rcvd2aMsgs, rcvd2bMsgs >>
 
 ShowsSafeAt(Q, b, v) ==
-  LET Q1b == {m \in 1bMsgs : m.bal = b /\ m.acc \in Q}
+  LET Q1b == {m \in rcvd1bMsgs : m.bal = b /\ m.acc \in Q}
   IN  /\ \A a \in Q : \E m \in Q1b : m.acc = a
       /\ \/ \A m \in Q1b : m.mbal = -1
          \/ \E m \in Q1b :
@@ -31,7 +31,7 @@ Init ==
     /\ 2aMsgs = {}
     /\ 2bMsgs = {}
     /\ rcvd1aMsgs = [a \in Acceptor |-> {}]
-    /\ rcvd1bMsgs = [a \in Acceptor |-> {}]
+    /\ rcvd1bMsgs = {} \* received by ballot leaders; no need for a function because they contain the ballot already
     /\ rcvd2aMsgs = [a \in Acceptor |-> {}]
     /\ rcvd2bMsgs = [a \in Acceptor |-> {}]
 
@@ -49,6 +49,11 @@ Phase1b(a, b) ==
     /\ maxBal' = [maxBal EXCEPT ![a] = b]
     /\ 1bMsgs' = 1bMsgs \cup {[acc |-> a, bal |-> b, mbal |-> maxVBal[a], mval |-> maxVVal[a]]}
     /\ UNCHANGED <<maxVBal, maxVVal, 1aMsgs, 2bMsgs, 2aMsgs, rcvd1aMsgs, rcvd1bMsgs, rcvd2aMsgs, rcvd2bMsgs>>
+
+Receive1bMsg(a, b, mbal, mval) ==
+    /\  LET m == [acc |-> a, bal |-> b, mbal |-> mbal, mval |-> mval]
+        IN  m \in 1bMsgs /\ rcvd1bMsgs' = rcvd1bMsgs \cup {m}
+    /\ UNCHANGED <<maxBal, maxVBal, maxVVal, 1aMsgs, 1bMsgs, 2aMsgs, 2bMsgs, rcvd1aMsgs, rcvd2aMsgs, rcvd2bMsgs>>
 
 Phase2a(b, v) ==
     /\ \A m \in 2aMsgs : m.bal # b
@@ -80,6 +85,7 @@ Next == \E b \in Ballot, v \in Value, a \in Acceptor :
     \/ Phase1a(b)
     \/ Receive1aMsg(a, b)
     \/ Phase1b(a, b)
+    \/ \E mbal \in Ballot : Receive1bMsg(a, b, mbal, v)
     \/ Phase2a(b, v)
     \/ Receive2aMsg(a, b, v)
     \/ Phase2b(a, b, v)
@@ -95,10 +101,9 @@ TypeOK == /\ maxBal  \in [Acceptor -> Ballot \cup {-1}]
           /\ 2aMsgs \in SUBSET [bal : Ballot, val : Value]
           /\ 2bMsgs \in SUBSET [acc : Acceptor, bal : Ballot, val : Value]
           /\ rcvd1aMsgs \in [Acceptor -> SUBSET Ballot]
-          /\ rcvd1bMsgs \in [Acceptor -> SUBSET [acc : Acceptor, bal : Ballot, mbal : Ballot \cup {-1}, mval : Value]]
+          /\ rcvd1bMsgs \in SUBSET [acc : Acceptor, bal : Ballot, mbal : Ballot \cup {-1}, mval : Value]
           /\ rcvd2aMsgs \in [Acceptor -> SUBSET [bal : Ballot, val : Value]]
           /\ rcvd2bMsgs \in [Acceptor -> SUBSET [acc : Acceptor, bal : Ballot, val : Value]]
-
 
 ChosenIn(b, v) ==
     \E a0 \in Acceptor : \E Q \in Quorum : \A a \in Q : 
@@ -125,6 +130,7 @@ Invariant0 == \A a \in Acceptor : \A b \in Ballot :
     /\ b \in rcvd1aMsgs[a] => b \in 1aMsgs
     /\ \A v \in Value : [bal |-> b, val |-> v] \in rcvd2aMsgs[a] => [bal |-> b, val |-> v] \in 2aMsgs
     /\ \A a2 \in Acceptor : \A v \in Value : [acc |-> a2, bal |-> b, val |-> v] \in rcvd2bMsgs[a] => [acc |-> a2, bal |-> b, val |-> v] \in 2bMsgs
+    /\ \A m \in rcvd1bMsgs : m \in 1bMsgs
 Invariant0_ == TypeOK /\ Invariant0
 
 Invariant1 == 
