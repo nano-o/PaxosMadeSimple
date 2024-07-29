@@ -9,7 +9,8 @@ CONSTANTS
 TLCValue == {v1,v2}
 TLCAcceptor == {a1,a2,a3}
 TLCQuorum == {{a1,a2},{a1,a3},{a2,a3}}
-TLCBallot == 0..3
+TLCMaxBallot == 1
+TLCMaxTime == 3
 
 Symm == Permutations(TLCAcceptor) \cup Permutations(TLCValue)
 

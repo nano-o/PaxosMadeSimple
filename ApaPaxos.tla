@@ -5,11 +5,11 @@ Acceptor == {"A1_OF_ACCEPTOR", "A2_OF_ACCEPTOR", "A3_OF_ACCEPTOR"}
 Value == {"V1_OF_VALUE", "V2_OF_VALUE"}
 \* Quorum == {{"A1_OF_ACCEPTOR"}}
 Quorum == {{"A1_OF_ACCEPTOR", "A2_OF_ACCEPTOR"}, {"A1_OF_ACCEPTOR", "A3_OF_ACCEPTOR"}, {"A2_OF_ACCEPTOR", "A3_OF_ACCEPTOR"}}
-\* We also need to substitue some operators and we have to do the in a TLC cfg file
+\* We also need to substitue some operators and we have to do it in a TLC cfg file (ApaPaxos.cfg)
 
 ApaSomeValue == "V1_OF_VALUE"
-MaxTime == 1
-MaxBallot == 2
+MaxTime == 2
+MaxBallot == 1
 
 VARIABLES 
     \* @type: Int;

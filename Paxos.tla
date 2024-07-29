@@ -1,5 +1,7 @@
 ------------ MODULE Paxos ------------
 
+\* messages contain the time by which they must be received
+
 EXTENDS Integers, FiniteSets, TLC
 
 CONSTANT Value, Acceptor, Quorum, MaxBallot, MaxTime
@@ -17,13 +19,14 @@ VARIABLES maxBal, maxVBal, maxVVal,
 
 vars == << maxBal, maxVBal, maxVVal, 1aMsgs, 1bMsgs, 2aMsgs, 2bMsgs, rcvd1aMsgs, rcvd1bMsgs, rcvd2aMsgs, clock >>
 
-ShowsSafeAt(Q, b, v) ==
-  LET Q1b == {m \in rcvd1bMsgs : m[2].bal = b /\ m[2].acc \in Q}
-  IN  /\ \A a \in Q : \E m \in Q1b : m[2].acc = a
-      /\ \/ \A m \in Q1b : m[2].mbal = -1
-         \/ \E m \in Q1b :
-            /\ m[2].mval = v
-            /\ \A m1 \in Q1b : m1[2].mbal <= m[2].mbal
+ShowsSafeAt(M, Q, b, v) ==
+    LET \* @type: Set(<<Int, {acc : ACCEPTOR, bal : Int, mbal : Int, mval : VALUE}>>);
+        Q1b == {m \in M : m[2].bal = b /\ m[2].acc \in Q}
+    IN  /\ \A a \in Q : \E m \in Q1b : m[2].acc = a
+        /\  \/ \A m \in Q1b : m[2].mbal = -1
+            \/ \E m \in Q1b :
+                /\ m[2].mval = v
+                /\ \A m1 \in Q1b : m1[2].mbal <= m[2].mbal
 
 Init ==
     /\ maxBal = [a \in Acceptor |-> -1]
@@ -39,53 +42,53 @@ Init ==
     \* /\ rcvd2bMsgs = [a \in Acceptor |-> {}]
     /\ clock = -1 \* the clock is started by setting it to 0
 
-StartClock ==
-    /\  1aMsgs # {} \* at least one ballot must be started
-    /\  clock' = 0
-    /\  UNCHANGED <<maxBal, maxVBal, maxVVal, 1aMsgs, 1bMsgs, 2aMsgs, 2bMsgs, rcvd1aMsgs, rcvd1bMsgs, rcvd2aMsgs>>
-
 IncrementClock ==
-    /\ clock >= 0
     /\ clock < MaxTime
-    /\ clock' = clock + 1
+    /\ 1aMsgs # {}
     \* after the clock is started, messages must be received in a timely manner:
+    /\ clock' = clock + 1
     /\ \A a \in Acceptor :
-        /\ \A m \in 1aMsgs : m[1] < clock => m \in rcvd1aMsgs[a]
-        /\ \A m \in 2aMsgs : m[1] < clock => m \in rcvd2aMsgs[a]
-    /\ \A m \in 1bMsgs : m[1] < clock => m \in rcvd1bMsgs
+        /\ \A m \in 1aMsgs : m[1] < clock' => m \in rcvd1aMsgs[a]
+        /\ \A m \in 2aMsgs : m[1] < clock' => m \in rcvd2aMsgs[a]
+    /\ \A m \in 1bMsgs : m[1] < clock' => m \in rcvd1bMsgs
     \* nothing else changes except the clock:
     /\ UNCHANGED <<maxBal, maxVBal, maxVVal, 1aMsgs, 1bMsgs, 2aMsgs, 2bMsgs, rcvd1aMsgs, rcvd1bMsgs, rcvd2aMsgs>>
 
 Phase1a(b) ==
     /\ clock = -1 \* once the clock is started, we are in a synchronous ballot that "lasts long enough"
-    /\ 1aMsgs' = 1aMsgs \cup {<<clock,b>>}
+    /\ 1aMsgs' = 1aMsgs \cup {<<clock+1,b>>}
     /\ UNCHANGED <<maxBal, maxVBal, maxVVal, 1bMsgs, 2aMsgs, 2bMsgs, rcvd1aMsgs, rcvd1bMsgs, rcvd2aMsgs, clock>>
 
 Receive1aMsg(a, m) ==
-    /\  m \in 1aMsgs
     /\  rcvd1aMsgs' = [rcvd1aMsgs EXCEPT ![a] = @ \cup {m}]
     /\  LET b == m[2] IN
             IF b > maxBal[a]
             THEN \* Phase1b:
                 /\ maxBal' = [maxBal EXCEPT ![a] = b]
-                /\ 1bMsgs' = 1bMsgs \cup {<<clock, [acc |-> a, bal |-> b, mbal |-> maxVBal[a], mval |-> maxVVal[a]]>>}
+                /\ 1bMsgs' = 1bMsgs \cup {<<clock+1, [acc |-> a, bal |-> b, mbal |-> maxVBal[a], mval |-> maxVVal[a]]>>}
                 /\ UNCHANGED <<maxVBal, maxVVal, 1aMsgs, 2aMsgs, 2bMsgs, rcvd1bMsgs, rcvd2aMsgs, clock>>
             ELSE UNCHANGED <<maxBal, maxVBal, maxVVal, 1aMsgs, 1bMsgs, 2aMsgs, 2bMsgs, rcvd1bMsgs, rcvd2aMsgs, clock>>
 
-Receive1bMsg(m, v) ==
-    /\  m \in 1bMsgs
+(**********************************************************************************)
+(* Here there was a mistake: v was a parameter quantified over in Next, and so by *)
+(* picking the "wrong" v we could receive a quorum of 1b messages without sending *)
+(* a 2a message. This was found only after 25 minutes of model-checking with 16   *)
+(* cores and enough memory not to swap.                                           *)
+(**********************************************************************************)
+Receive1bMsg(m) ==
     /\  rcvd1bMsgs' = rcvd1bMsgs \cup {m}
     /\  LET b == m[2].bal
         IN  IF  /\ \A m2a \in 2aMsgs : m2a[2].bal # b \* NOTE keep abstract
-                /\ \E Q \in Quorum : ShowsSafeAt(Q, b, v)
+                /\ \E Q \in Quorum, v \in Value : ShowsSafeAt(rcvd1bMsgs, Q, b, v)
             THEN \* Phase2a:
-                /\ 2aMsgs' = 2aMsgs \cup {<<clock, [bal |-> b, val |-> v]>>}
+                /\ \E Q \in Quorum, v \in Value : 
+                    /\ ShowsSafeAt(rcvd1bMsgs, Q, b, v) 
+                    /\ 2aMsgs' = 2aMsgs \cup {<<clock+1, [bal |-> b, val |-> v]>>}
                 /\ UNCHANGED <<1aMsgs, 1bMsgs, maxBal, maxVBal, maxVVal, 2bMsgs, rcvd1aMsgs, rcvd2aMsgs, clock>>
             ELSE 
                 UNCHANGED <<maxBal, maxVBal, maxVVal, 1aMsgs, 1bMsgs, 2aMsgs, 2bMsgs, rcvd1aMsgs, rcvd2aMsgs, clock>>
 
 Receive2aMsg(a, m) ==
-    /\  m \in 2aMsgs
     /\  rcvd2aMsgs' = [rcvd2aMsgs EXCEPT ![a] = @ \cup {m}]
     /\  LET b == m[2].bal
             v == m[2].val
@@ -104,13 +107,13 @@ Receive2aMsg(a, m) ==
 \*     /\ rcvd2bMsgs' = [rcvd2bMsgs EXCEPT ![a1] = @ \cup {[acc |-> a2, bal |-> b, val |-> v]}]
 \*     /\ UNCHANGED <<maxBal, maxVBal, maxVVal, 1aMsgs, 1bMsgs, 2aMsgs, 2bMsgs, rcvd1aMsgs, rcvd1bMsgs, rcvd2aMsgs, clock>>
 
-Next == \E t \in Time : \E b \in Ballot, v \in Value, a \in Acceptor :
-    \/ StartClock
-    \/ IncrementClock
-    \/ Phase1a(b)
-    \/ Receive1aMsg(a, <<t, b>>)
-    \/ \E mbal \in Ballot, mval \in Value : Receive1bMsg(<<t, [acc |-> a, bal |-> b, mbal |-> mbal, mval |-> mval]>>, v)
-    \/ Receive2aMsg(a, <<t, [bal |-> b, val |-> v]>>)
+Next ==
+    \/  IncrementClock
+    \/  \E b \in Ballot : Phase1a(b)
+    \/  \E m \in 1bMsgs : Receive1bMsg(m)
+    \/  \E a \in Acceptor :
+            \/ \E m \in 1aMsgs : Receive1aMsg(a, m)
+            \/ \E m \in 2aMsgs : Receive2aMsg(a, m)
     \* \/ \E a2 \in Acceptor : Receive2bMsg(a, a2, b, v)
 
 Spec == Init /\ [][Next]_vars
@@ -198,6 +201,44 @@ Invariant == Invariant0 /\ Invariant1 /\ Invariant2 /\ Correctness
 \* Now the liveness property:
 
 Liveness ==
-    clock > 1 => \E b \in Ballot, v \in Value : Chosen(v)
+    clock > 2 => \E b \in Ballot, v \in Value : Chosen(v)
+
+Max(S) == CHOOSE x \in S : \A y \in S : x >= y
+
+LivenessInvariant0 ==
+    /\  \A m \in 1aMsgs :
+        /\  m[1] = 0
+        /\  m[1] < clock => \A a \in Acceptor : m \in rcvd1aMsgs[a]
+    /\  \A m \in 1bMsgs :
+        /\  0 <= m[1]
+        /\  m[1] <= 1
+        /\  m[1] <= clock+1
+        /\  m[1] < clock => m \in rcvd1bMsgs
+    /\  \A m \in 2aMsgs :
+        /\  0 <= m[1]
+        /\  m[1] <= clock+1
+        /\  m[1] < clock => \A a \in Acceptor : m \in rcvd2aMsgs[a]
+    /\  \A 2aMsg \in 2aMsgs : \E Q \in Quorum : \A a \in Q : \E 1bMsg \in rcvd1bMsgs :
+            /\  1bMsg[2].bal = 2aMsg[2].bal
+            /\  1bMsg[2].acc = a
+    /\  \A 1bMsg \in 1bMsgs : \E 1aMsg \in rcvd1aMsgs[1bMsg[2].acc] : 1aMsg[2] = 1bMsg[2].bal
+    /\  \A a \in Acceptor : maxBal[a] > -1 => \E m \in 1aMsgs : maxBal[a] = m[2]
+LivenessInvariant0_ == TypeOK /\ LivenessInvariant0 /\ Invariant0 /\ Invariant1
+
+LivenessInvariant1 == LET mb == Max({1aMsg[2] : 1aMsg \in 1aMsgs}) IN
+    clock > 0 =>
+        /\  \A a \in Acceptor, m \in 1aMsgs : m \in rcvd1aMsgs[a]
+        /\  \E Q \in Quorum : \A a \in Q : \E m \in 1bMsgs :
+                /\  m[2].acc = a 
+                /\  m[2].bal = mb
+                /\  m[1] < 2
+LivenessInvariant1_ == TypeOK /\ LivenessInvariant0 /\ Invariant0 /\ Invariant1 /\ LivenessInvariant1
+
+LivenessInvariant2 == LET mb == Max({1aMsg[2] : 1aMsg \in 1aMsgs}) IN
+    clock > 1 =>
+        /\  \A m \in 1bMsgs : m[1] <= 1
+        \* /\  \E m \in 2aMsgs : m[2].bal = mb
+LivenessInvariant2_ == TypeOK /\ LivenessInvariant0 /\ Invariant0 /\ Invariant1 /\ LivenessInvariant1 /\ LivenessInvariant2
+
 
 ======================================
