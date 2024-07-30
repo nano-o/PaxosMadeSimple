@@ -14,7 +14,7 @@ Quorum == {
     {"A2_OF_ACCEPTOR","A3_OF_ACCEPTOR"}}
 \* Quorum == {{"A1_OF_ACCEPTOR"}}
 
-MaxBal == 3
+MaxBal == 2
 Ballot == 0..MaxBal \* NOTE: we have to make this a finite set for `^Apalache^'
 
 VARIABLES
@@ -22,10 +22,11 @@ VARIABLES
     votes,
     \* @type: ACCEPTOR -> Int;
     maxBal,
+    \* @type: Set(ACCEPTOR);
+    crashed,
     \* @type: Bool;
     goodBallot
 
 INSTANCE AbstractPaxos
 
 ===================================================================================
-

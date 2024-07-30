@@ -18,11 +18,13 @@ CONSTANTS
 VARIABLES
     votes,
     maxBal,
+    crashed,
     goodBallot
 
 TypeOK ==
     /\ votes \in [Acceptor -> SUBSET (Ballot\times Value)]
     /\ maxBal \in [Acceptor -> Ballot\cup {-1}]
+    /\ crashed \in SUBSET Acceptor
     /\ goodBallot \in BOOLEAN
 
 VotedFor(a, b, v) == <<b, v>> \in votes[a]
@@ -53,20 +55,29 @@ ShowsSafeAt(Q, b, v) ==
 Init ==
     /\ votes = [a \in Acceptor |-> {}]
     /\ maxBal = [a \in Acceptor |-> -1]
+    /\ crashed = {}
     /\ goodBallot = FALSE
 
+Crash(a) ==
+    /\  crashed' = crashed \cup {a}
+    /\  \E Q \in Quorum : \A a2 \in Q : a2 \notin crashed'
+    /\  UNCHANGED <<votes, maxBal, goodBallot>>
+
 IncreaseMaxBal(a, b) ==
+  /\ a \notin crashed
   \* once a good ballot started, we cannot increase maxBal beyond it:
   /\ goodBallot => \E a2 \in Acceptor : b <= maxBal[a2]
   /\ b > maxBal[a]
   /\ maxBal' = [maxBal EXCEPT ![a] = b]
-  /\ UNCHANGED <<votes, goodBallot>>
+  /\ UNCHANGED <<votes, crashed, goodBallot>>
 
 IncreaseMaxBal_ENABLED(a, b) ==
+  /\ a \notin crashed
   /\ goodBallot => \E a2 \in Acceptor : b <= maxBal[a2]
   /\ b > maxBal[a]
 
 VoteFor(a, b, v) ==
+    /\ a \notin crashed
     /\ maxBal[a] \leq b
     /\ \A vt \in votes[a] : vt[1] # b
     /\ \A c \in Acceptor \ {a} :
@@ -74,9 +85,10 @@ VoteFor(a, b, v) ==
     /\ \E Q \in Quorum : ShowsSafeAt(Q, b, v)
     /\ votes' = [votes EXCEPT ![a] = @ \cup {<<b, v>>}]
     /\ maxBal' = [maxBal EXCEPT ![a] = b]
-    /\ UNCHANGED goodBallot
+    /\ UNCHANGED <<crashed, goodBallot>>
 
 VoteFor_ENABLED(a, b, v) ==
+    /\ a \notin crashed
     /\ maxBal[a] \leq b
     /\ \A vt \in votes[a] : vt[1] # b
     /\ \A c \in Acceptor \ {a} :
@@ -86,14 +98,15 @@ VoteFor_ENABLED(a, b, v) ==
 StartGoodBallot ==
     /\ \E a \in Acceptor : maxBal[a] > -1
     /\ goodBallot' = TRUE
-    /\ UNCHANGED <<votes, maxBal>>
+    /\ UNCHANGED <<votes, maxBal, crashed>>
 
 Next  ==  \E a \in Acceptor, b \in Ballot :
             \/ IncreaseMaxBal(a, b)
             \/ \E v \in Value : VoteFor(a, b, v)
+            \/ Crash(a)
             \/ StartGoodBallot
 
-Spec == Init /\ [][Next]_<<votes, maxBal, goodBallot>>
+Spec == Init /\ [][Next]_<<votes, maxBal, crashed, goodBallot>>
 
 VotesSafe == \A a \in Acceptor, b \in Ballot, v \in Value :
                  VotedFor(a, b, v) => SafeAt(b, v)
@@ -126,7 +139,8 @@ Liveness ==
         \* /\ \neg ENABLED VoteFor(a, b, v)
     => chosen # {}
 
-maxBallot == CHOOSE b \in Ballot :
+\* NOTE: CHOOSE is dangerous! I had forgotten -1 and was getting weird results.
+maxBallot == CHOOSE b \in Ballot \cup {-1}:
     /\  \A a \in Acceptor : maxBal[a] <= b
     /\  \E a \in Acceptor : maxBal[a] = b
 
@@ -134,20 +148,24 @@ maxBallot == CHOOSE b \in Ballot :
 LivenessInvariant == 
     /\  TypeOK
     /\  OneValuePerBallot
+    /\  \E Q \in Quorum : Q \cap crashed = {}
     /\  \A a \in Acceptor, b \in Ballot, v \in Value : <<b,v>> \in votes[a] => 
             \E Q \in Quorum : ShowsSafeAt(Q, b, v)
     /\  goodBallot =>
         /\  maxBallot > -1
         /\  \A a \in Acceptor :
-            /\  (\A b \in Ballot : \neg IncreaseMaxBal_ENABLED(a, b)) => maxBal[a] = maxBallot
+            /\  (\A b \in Ballot : \neg IncreaseMaxBal_ENABLED(a, b)) =>
+                    \/  a \in crashed 
+                    \/  maxBal[a] = maxBallot
             /\  \A b \in Ballot :
                     (maxBal[a] <= b /\ (\A v \in Value : \neg VoteFor_ENABLED(a, b, v))) =>
+                        \/  a \in crashed
                         \/  \E v2 \in Value : <<b,v2>> \in votes[a]
                         \/  \A Q \in Quorum : \E a2 \in Q : maxBal[a2] < b
 LivenessInvariant_ == LivenessInvariant
 
 Liveness_ ==
-    /\  LivenessInvariant
+    LivenessInvariant
     
 Canary1 == \neg (
     \A a \in Acceptor, b \in Ballot, v \in Value :
