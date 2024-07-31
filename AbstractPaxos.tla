@@ -7,6 +7,9 @@
 (* value.                                                                       *)
 (********************************************************************************)
 
+\* TODO: how do we check the relevant actions do not remain enabled forever?
+\* If it was receiving a message, we could argue we use a template that guarantees it by construction (e.g. can't receive the same message twice).
+
 EXTENDS Integers
 
 CONSTANTS
@@ -21,11 +24,13 @@ VARIABLES
     crashed,
     goodBallot
 
+vars == <<votes, maxBal, crashed, goodBallot>>
+
 TypeOK ==
     /\ votes \in [Acceptor -> SUBSET (Ballot\times Value)]
     /\ maxBal \in [Acceptor -> Ballot\cup {-1}]
     /\ crashed \in SUBSET Acceptor
-    /\ goodBallot \in BOOLEAN
+    /\ goodBallot \in Ballot
 
 VotedFor(a, b, v) == <<b, v>> \in votes[a]
 
@@ -56,7 +61,7 @@ Init ==
     /\ votes = [a \in Acceptor |-> {}]
     /\ maxBal = [a \in Acceptor |-> -1]
     /\ crashed = {}
-    /\ goodBallot = FALSE
+    /\ goodBallot \in Ballot
 
 Crash(a) ==
     /\  crashed' = crashed \cup {a}
@@ -66,14 +71,14 @@ Crash(a) ==
 IncreaseMaxBal(a, b) ==
   /\ a \notin crashed
   \* once a good ballot started, we cannot increase maxBal beyond it:
-  /\ goodBallot => \E a2 \in Acceptor : b <= maxBal[a2]
+  /\ goodBallot > -1 => b <= goodBallot
   /\ b > maxBal[a]
   /\ maxBal' = [maxBal EXCEPT ![a] = b]
   /\ UNCHANGED <<votes, crashed, goodBallot>>
 
 IncreaseMaxBal_ENABLED(a, b) ==
   /\ a \notin crashed
-  /\ goodBallot => \E a2 \in Acceptor : b <= maxBal[a2]
+  /\ goodBallot > -1 => b <= goodBallot
   /\ b > maxBal[a]
 
 VoteFor(a, b, v) ==
@@ -95,18 +100,12 @@ VoteFor_ENABLED(a, b, v) ==
          \A vt \in votes[c] : (vt[1] = b) => (vt[2] = v)
     /\ \E Q \in Quorum : ShowsSafeAt(Q, b, v)
 
-StartGoodBallot ==
-    /\ \E a \in Acceptor : maxBal[a] > -1
-    /\ goodBallot' = TRUE
-    /\ UNCHANGED <<votes, maxBal, crashed>>
+Next  ==  \E a \in Acceptor, b \in Ballot, v \in Value :
+    \/ IncreaseMaxBal(a, b)
+    \/ VoteFor(a, b, v)
+    \/ Crash(a)
 
-Next  ==  \E a \in Acceptor, b \in Ballot :
-            \/ IncreaseMaxBal(a, b)
-            \/ \E v \in Value : VoteFor(a, b, v)
-            \/ Crash(a)
-            \/ StartGoodBallot
-
-Spec == Init /\ [][Next]_<<votes, maxBal, crashed, goodBallot>>
+Spec == Init /\ [][Next]_vars
 
 VotesSafe == \A a \in Acceptor, b \in Ballot, v \in Value :
                  VotedFor(a, b, v) => SafeAt(b, v)
@@ -129,20 +128,22 @@ Invariant ==
   /\ Consistency
 Invariant_ == Invariant
 
-\* TLC can handle ENABLED, but not Apalache
+\* NOTE: TLC can handle ENABLED, but not Apalache
+\* TODO: What if actions remain enabled forever?
 Liveness ==
-    /\ goodBallot
-    /\ \A a \in Acceptor, b \in Ballot, v \in Value :
+    (/\ goodBallot > -1
+     /\ \A a \in Acceptor, b \in Ballot, v \in Value :
         /\ \neg IncreaseMaxBal_ENABLED(a, b)
-        /\ \neg VoteFor_ENABLED(a, b, v)
+        /\ \neg VoteFor_ENABLED(a, b, v))
         \* /\ \neg ENABLED IncreaseMaxBal(a, b)
         \* /\ \neg ENABLED VoteFor(a, b, v)
     => chosen # {}
 
-\* NOTE: CHOOSE is dangerous! I had forgotten -1 and was getting weird results.
-maxBallot == CHOOSE b \in Ballot \cup {-1}:
-    /\  \A a \in Acceptor : maxBal[a] <= b
-    /\  \E a \in Acceptor : maxBal[a] = b
+\* Check this with TLC to catch potential errors:
+ENABLED_OK ==
+    \A a \in Acceptor, b \in Ballot, v \in Value :
+        /\ IncreaseMaxBal_ENABLED(a, b) = ENABLED IncreaseMaxBal(a, b)
+        /\ VoteFor_ENABLED(a, b, v) = ENABLED VoteFor(a, b, v)
 
 \* Supporting invariant for liveness:
 LivenessInvariant == 
@@ -151,12 +152,11 @@ LivenessInvariant ==
     /\  \E Q \in Quorum : Q \cap crashed = {}
     /\  \A a \in Acceptor, b \in Ballot, v \in Value : <<b,v>> \in votes[a] => 
             \E Q \in Quorum : ShowsSafeAt(Q, b, v)
-    /\  goodBallot =>
-        /\  maxBallot > -1
+    /\  goodBallot > -1 =>
         /\  \A a \in Acceptor :
             /\  (\A b \in Ballot : \neg IncreaseMaxBal_ENABLED(a, b)) =>
                     \/  a \in crashed 
-                    \/  maxBal[a] = maxBallot
+                    \/  maxBal[a] = goodBallot
             /\  \A b \in Ballot :
                     (maxBal[a] <= b /\ (\A v \in Value : \neg VoteFor_ENABLED(a, b, v))) =>
                         \/  a \in crashed
@@ -172,5 +172,16 @@ Canary1 == \neg (
         /\ \neg IncreaseMaxBal_ENABLED(a, b)
         /\ \neg VoteFor_ENABLED(a, b, v)
 )
+
+\* Now let's try with temporal logic:
+
+RealLiveness == [](goodBallot > -1 => <>(chosen # {}))
+
+LiveSpec == 
+    /\  Init
+    /\  [][Next]_vars
+    /\  \A a \in Acceptor, b \in Ballot, v \in Value :
+            /\  WF_vars( IncreaseMaxBal(a, b) )
+            /\  WF_vars( VoteFor(a, b, v) )
 
 =====================================================================================

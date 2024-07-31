@@ -24,7 +24,7 @@ VARIABLES
     maxBal,
     \* @type: Set(ACCEPTOR);
     crashed,
-    \* @type: Bool;
+    \* @type: Int;
     goodBallot
 
 INSTANCE AbstractPaxos
