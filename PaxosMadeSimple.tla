@@ -11,15 +11,15 @@ EXTENDS Integers, FiniteSets
 
 CONSTANT Value, Acceptor, Quorum
 
-ASSUME QA == /\ \A Q \in Quorum : Q \subseteq Acceptor 
-             /\ \A Q1, Q2 \in Quorum : Q1 \cap Q2 # {} 
+ASSUME QA == /\ \A Q \in Quorum : Q \subseteq Acceptor
+             /\ \A Q1, Q2 \in Quorum : Q1 \cap Q2 # {}
 
 Ballot ==  Nat
 
 ASSUME BallotAssump == (Ballot \cup {-1}) \cap Acceptor = {}
 
 None == CHOOSE v : v \notin Value
- 
+
 Message ==      [type : {"1a"}, bal : Ballot]
            \cup [type : {"1b"}, acc : Acceptor, bal : Ballot,
                  mbal : Ballot \cup {-1}, mval : Value \cup {None}]
@@ -33,22 +33,22 @@ Message ==      [type : {"1a"}, bal : Ballot]
             msgs = {}
   define {
     sentMsgs(t, b) == {m \in msgs : (m.type = t) /\ (m.bal = b)}
-    
+
     ShowsSafeAt(Q, b, v) ==
       LET Q1b == {m \in sentMsgs("1b", b) : m.acc \in Q}
-      IN  /\ \A a \in Q : \E m \in Q1b : m.acc = a 
+      IN  /\ \A a \in Q : \E m \in Q1b : m.acc = a
           /\ \/ \A m \in Q1b : m.mbal = -1
              \/ \E m \in Q1b :
                 /\ m.mval = v
                 /\ \A m1 \in Q1b : m1.mbal <= m.mbal
     }
- 
+
   macro Phase1a() { msgs := msgs \cup {[type |-> "1a", bal |-> self]} ; }
-  
+
   macro Phase1b(b) {
     when b > maxBal[self] /\ sentMsgs("1a", b) # {};
     maxBal[self] := b;
-    msgs := msgs \cup {[type |-> "1b", acc |-> self, bal |-> b, 
+    msgs := msgs \cup {[type |-> "1b", acc |-> self, bal |-> b,
                         mbal |-> maxVBal[self], mval |-> maxVVal[self]]} ;
    }
 
@@ -67,9 +67,9 @@ Message ==      [type : {"1a"}, bal : Ballot]
         msgs := msgs \cup {[type |-> "2b", acc |-> self, bal |-> b, val |-> m.val]}
     }
    }
-   
+
   process (acceptor \in Acceptor) {
-    acc: while (TRUE) { 
+    acc: while (TRUE) {
             with (b \in Ballot) { either Phase1b(b) or Phase2b(b)  } }
    }
 
@@ -131,25 +131,28 @@ Next == (\E self \in Acceptor: acceptor(self))
 
 Spec == Init /\ [][Next]_vars
 
-\* END TRANSLATION 
+\* END TRANSLATION
 
 TypeOK == /\ maxBal  \in [Acceptor -> Ballot \cup {-1}]
           /\ maxVBal \in [Acceptor -> Ballot \cup {-1}]
           /\ maxVVal \in [Acceptor -> Value \cup {None}]
-          /\ msgs \subseteq Message    
+          /\ msgs \subseteq Message
 
 ChosenIn(b, v) ==
-    \E Q \in Quorum : \A a \in Q : 
-        \E m \in sentMsgs("2b", b) : 
+    \E Q \in Quorum : \A a \in Q :
+        \E m \in sentMsgs("2b", b) :
             /\  m.acc = a
             /\  m.val = v
-                      
+
 Chosen(v) == \E b \in Ballot : ChosenIn(b,v)
 
 Correctness ==
     \A v1,v2 \in Value : Chosen(v1) /\ Chosen(v2) => v1 = v2
 
 THEOREM Spec => []Correctness
+
+Liveness == \A b \in Ballot :
+    [](\A a \in Acceptor : maxBal[a] <= b) => <>(\E v \in Value : Chosen(v))
 
 =============================================================================
 \* Modification History
